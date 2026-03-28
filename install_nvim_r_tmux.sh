@@ -300,6 +300,15 @@ require("lazy").setup({
       { "zz", "<cmd>Neotree toggle<cr>", desc = "Toggle file browser" },
     },
     opts = {
+      default_component_configs = {
+        icon = {
+          folder_closed = "+",
+          folder_open   = "-",
+          folder_empty  = "~",
+          default       = " ",
+        },
+        git_status = { symbols = {} },
+      },
       filesystem = {
         filtered_items = { visible = false, hide_dotfiles = true, hide_gitignored = true },
       },

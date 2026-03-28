@@ -284,10 +284,23 @@ require("lazy").setup({
       { "zz", "<cmd>Neotree toggle<cr>", desc = "Toggle file browser" },
     },
     opts = {
+      -- ASCII icons work in any terminal without Nerd Fonts installed.
+      -- Students connecting via SSH/MobaXterm won't see broken boxes.
+      -- To use Nerd Font icons instead, remove this default_component_configs
+      -- block and install a Nerd Font: https://www.nerdfonts.com
+      default_component_configs = {
+        icon = {
+          folder_closed = "+",
+          folder_open   = "-",
+          folder_empty  = "~",
+          default       = " ",
+        },
+        git_status = { symbols = {} },
+      },
       filesystem = {
         filtered_items = {
-          visible       = false,  -- hidden files not shown by default
-          hide_dotfiles = true,   -- toggle with H key inside neo-tree
+          visible       = false,
+          hide_dotfiles = true,
           hide_gitignored = true,
         },
       },
