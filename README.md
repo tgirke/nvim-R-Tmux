@@ -347,7 +347,7 @@ without conflict.
 | Jump between splits | `Ctrl-h/j/k/l` |
 | Toggle mouse on/off | `Space-m` |
 | Toggle indent lines on/off | `Space-i` |
-| Toggle markdown view | `Space-md` |
+| Toggle markdown view | `Space-md` or `:RenderMarkdown disable`, details [here](https://github.com/MeanderingProgrammer/render-markdown.nvim?tab=readme-ov-file#commands)|
 
 ---
 
