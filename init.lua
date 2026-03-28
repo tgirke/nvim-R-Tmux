@@ -335,10 +335,10 @@ require("lazy").setup({
   -- ---------------------------------------------------------
   {
     "hrsh7th/nvim-cmp",
-    event = { "InsertEnter" },   -- load when entering insert mode
+    lazy = false,
     dependencies = {
       { "R-nvim/cmp-r", lazy = false },
-      "hrsh7th/cmp-buffer",
+      { "hrsh7th/cmp-buffer", lazy = false },
     },
     config = function()
       local cmp = require("cmp")
