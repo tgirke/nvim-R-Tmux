@@ -317,11 +317,15 @@ require("lazy").setup({
   },
 
   -- indent-blankline: indentation guides
+  -- Toggle with Space-i or :IBLToggle
   -- https://github.com/lukas-reineke/indent-blankline.nvim
   {
     "lukas-reineke/indent-blankline.nvim",
     main = "ibl",
     opts = {},
+    keys = {
+      { "<leader>i", "<cmd>IBLToggle<cr>", desc = "Toggle indent guides" },
+    },
   },
 
   -- render-markdown: renders markdown inside nvim terminal

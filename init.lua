@@ -310,7 +310,7 @@ require("lazy").setup({
   -- ---------------------------------------------------------
   -- indent-blankline.nvim
   -- Vertical indentation guide lines.
-  -- Toggle: :IBLToggle
+  -- Toggle: Space-i  (or :IBLToggle)
   --
   -- Repository: https://github.com/lukas-reineke/indent-blankline.nvim
   -- ---------------------------------------------------------
@@ -318,6 +318,9 @@ require("lazy").setup({
     "lukas-reineke/indent-blankline.nvim",
     main = "ibl",
     opts = {},
+    keys = {
+      { "<leader>i", "<cmd>IBLToggle<cr>", desc = "Toggle indent guides" },
+    },
   },
 
   -- ---------------------------------------------------------
@@ -462,6 +465,10 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --
 -- Markdown preview (in .md files):
 --   Space-rm               toggle rendered markdown view on/off
+--
+-- Indent guides:
+--   Space-i                toggle vertical indent guide lines on/off
+--                          (useful before copying to avoid pasting guide chars)
 --
 -- Splits:
 --   :vsplit                vertical split
