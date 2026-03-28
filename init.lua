@@ -335,13 +335,19 @@ require("lazy").setup({
   -- ---------------------------------------------------------
   {
     "hrsh7th/nvim-cmp",
+    event = { "InsertEnter" },   -- load when entering insert mode
     dependencies = {
-      "R-nvim/cmp-r",
+      { "R-nvim/cmp-r", lazy = false },
       "hrsh7th/cmp-buffer",
     },
     config = function()
       local cmp = require("cmp")
       cmp.setup({
+        completion = {
+          autocomplete = {
+            require("cmp.types").cmp.TriggerEvent.TextChanged,
+          },
+        },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
           ["<CR>"]      = cmp.mapping.confirm({ select = false }),
