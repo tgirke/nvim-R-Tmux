@@ -1,0 +1,27 @@
+#!/bin/bash
+# ===========================================================
+# ~/.local/bin/clip
+# OSC 52 clipboard writer
+#
+# Writes text to the local system clipboard via the OSC 52
+# terminal escape sequence. Works over SSH without X11
+# forwarding. The local terminal must support OSC 52:
+#   - macOS iTerm2:       yes
+#   - Windows Terminal:   yes (>= 1.18)
+#   - Most Linux terminals: yes
+#   - MobaXterm:          no (uses X11 clipboard instead,
+#                         which works automatically)
+#   - ChromeOS terminal:  yes (with tmux allow-passthrough)
+#
+# Usage:
+#   echo "text" | clip
+#   cat file.txt | clip
+#   clip < file.txt
+#
+# Author: Thomas Girke, based on OSC 52 spec
+# Reference: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+# ===========================================================
+
+buf=$(cat "$@")
+encoded=$(printf '%s' "$buf" | base64 | tr -d '\n')
+printf '\033]52;c;%s\a' "$encoded"
