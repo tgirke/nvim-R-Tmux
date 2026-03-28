@@ -343,11 +343,6 @@ require("lazy").setup({
     config = function()
       local cmp = require("cmp")
       cmp.setup({
-        completion = {
-          autocomplete = {
-            require("cmp.types").cmp.TriggerEvent.TextChanged,
-          },
-        },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
           ["<CR>"]      = cmp.mapping.confirm({ select = false }),
