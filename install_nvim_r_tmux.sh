@@ -359,6 +359,17 @@ end, { desc = "Toggle mouse" })
 -- Fold toggles: Space-z closes all, Space-Z opens all, za toggles one
 vim.keymap.set("n", "<leader>z", "zM", { desc = "Close all folds" })
 vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
+
+-- Auto-set tabstop=20 for R data frame viewer (\rv)
+-- Aligns column titles with column content
+vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
+  pattern = { "*.csv", "*.tsv" },
+  callback = function()
+    vim.opt_local.tabstop = 20
+    vim.opt_local.wrap    = false
+  end,
+  desc = "Align columns in R data frame viewer",
+})
 LUAEOF
 echo "  Done."
 echo ""

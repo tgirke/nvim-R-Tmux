@@ -385,6 +385,19 @@ end, { desc = "Toggle mouse" })
 vim.keymap.set("n", "<leader>z", "zM", { desc = "Close all folds" })
 vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
 
+-- Auto-set tabstop=20 when viewing R data frames with \rv
+-- Aligns column titles with column content in the viewer buffer.
+-- Also disables line wrapping so wide tables stay readable.
+-- To adjust column width change tabstop value (e.g. :set tabstop=15)
+vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
+  pattern = { "*.csv", "*.tsv" },
+  callback = function()
+    vim.opt_local.tabstop = 20
+    vim.opt_local.wrap    = false
+  end,
+  desc = "Align columns in R data frame viewer",
+})
+
 
 -- ===========================================================
 -- QUICK REFERENCE
@@ -406,6 +419,8 @@ vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
 --   \ch                    send all chunks above cursor
 --   \rh                    R help for word under cursor
 --   \ro                    toggle object browser
+--   \rv                    view data frame (columns auto-aligned, tabstop=20)
+--                          adjust width with: :set tabstop=15 (or any value)
 --   Alt + -                insert <-
 --   Alt + ,                insert |>
 --   :RMapsDesc             full R.nvim keybinding list
