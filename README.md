@@ -151,6 +151,12 @@ installation instructions for each of these.
 > | Paste in nvim | `p` |
 > | Copy text in terminal | `Ctrl-Shift-C` |
 > | Paste in terminal | `Ctrl-Shift-V` |
+> | Select text with mouse in terminal | `Shift+drag` then `Ctrl-Shift-C` |
+>
+> `Shift+drag` bypasses both tmux and Neovim mouse capture and works
+> whether mouse mode is on or off. Note however that it selects raw
+> screen characters including line numbers and split borders, so it
+> is best used only in a plain terminal pane, not inside the nvim editor.
 >
 > `yy` and `y` copy to the system clipboard, so you can paste with
 > `Ctrl-V` in any other application (browser, text editor etc.).
