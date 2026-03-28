@@ -91,6 +91,15 @@ vim.opt.termguicolors  = true   -- 24-bit color
 vim.opt.fillchars = { vert = "│", horiz = "─" }
 vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#5c6a7a", bold = false })
 
+-- Folding
+-- Uses treesitter to fold along code structure (function bodies,
+-- chunk argument blocks in Rmd/Quarto, etc.)
+-- foldlevel=99 means all folds start open — close manually as needed
+-- Reference: https://github.com/nvim-treesitter/nvim-treesitter#folding
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr   = "nvim_treesitter#foldexpr()"
+vim.opt.foldlevel  = 99
+
 -- ----------------------------------------------------------
 -- Mouse and clipboard
 --
@@ -353,6 +362,16 @@ vim.keymap.set("n", "<leader>m", function()
   end
 end, { desc = "Toggle mouse" })
 
+-- Fold toggles (Space-z / Space-Z)
+-- Useful for collapsing Quarto/Rmd chunk argument blocks (#| lines)
+-- and R function bodies to get a high-level overview of a script.
+-- Uses treesitter foldexpr set in Section 2 above.
+--   Space-z   close all folds
+--   Space-Z   open all folds
+--   za        toggle fold under cursor
+vim.keymap.set("n", "<leader>z", "zM", { desc = "Close all folds" })
+vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
+
 
 -- ===========================================================
 -- QUICK REFERENCE
@@ -404,6 +423,12 @@ end, { desc = "Toggle mouse" })
 --   Space-m                toggle mouse on/off
 --   (ChromeOS: starts OFF — use terminal text selection)
 --   (Others:   starts ON  — Shift+drag for terminal selection)
+--
+-- Folding (chunk args, function bodies):
+--   Space-z                close all folds
+--   Space-Z                open all folds
+--   za                     toggle fold under cursor
+--   zc / zo                close / open fold under cursor
 --
 -- Clipboard:
 --   yy                     yank line to system clipboard

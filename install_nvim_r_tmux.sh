@@ -211,6 +211,11 @@ vim.opt.termguicolors  = true
 vim.opt.fillchars = { vert = "│", horiz = "─" }
 vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#5c6a7a", bold = false })
 
+-- Folding via treesitter (foldlevel=99 means all folds start open)
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr   = "nvim_treesitter#foldexpr()"
+vim.opt.foldlevel  = 99
+
 -- Mouse and clipboard (on by default, toggle with Space-m)
 vim.opt.mouse     = "a"
 vim.opt.clipboard = "unnamedplus"
@@ -341,6 +346,10 @@ vim.keymap.set("n", "<leader>m", function()
     print("Mouse OFF — terminal text selection active")
   end
 end, { desc = "Toggle mouse" })
+
+-- Fold toggles: Space-z closes all, Space-Z opens all, za toggles one
+vim.keymap.set("n", "<leader>z", "zM", { desc = "Close all folds" })
+vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
 LUAEOF
 echo "  Done."
 echo ""
