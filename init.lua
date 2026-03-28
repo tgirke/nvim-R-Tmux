@@ -226,6 +226,15 @@ require("lazy").setup({
         min_editor_width = 72,
         rconsole_width   = 78,
         auto_quit        = true,
+
+        -- HPC performance: skip automatic completion database build on startup.
+        -- On HPC systems with large R libraries on network filesystems (GPFS/NFS)
+        -- the database build locks up Neovim completely and cannot be interrupted
+        -- without killing the process from another terminal.
+        -- R.nvim starts with basic completion only (fast and safe).
+        -- Do NOT run \rb (RBuildTags) on the HPC login node — it will freeze nvim.
+        -- If full completion is needed, run it inside an srun compute node session.
+        objbr_auto_start = false,    -- don't open object browser automatically
         hook = {
           on_filetype = function()
             -- Enter sends line (normal) or selection (visual) to R

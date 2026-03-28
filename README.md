@@ -88,6 +88,8 @@ The script:
 - Backs up any existing `~/.config/nvim`, `~/.tmux.conf` and `~/.Rprofile`
   with a timestamp suffix before making any changes
 - Writes `~/.config/nvim/init.lua` with all plugins configured
+- Writes `~/.config/nvim/after/ftplugin/sh_hlterm.lua` to fix the bash
+  prompt when using `\s` in shell scripts
 - Writes `~/.tmux.conf` with sane defaults and a default session layout
 - Installs the `clip` OSC 52 clipboard script to `~/.local/bin/clip`
 - Prints rollback commands at the end in case you want to undo
@@ -232,6 +234,16 @@ are now connected — code sent from the editor runs in the R pane.
 | Insert `\|>` | `Alt ,` |
 | List all keybindings | `:RMapsDesc` |
 | Show current config | `:RConfigShow` |
+
+> **Note on HPC completion database:**
+> R.nvim can build a completion database of all installed R packages (`\rb`).
+> On HPC systems this scan runs over a network filesystem with potentially
+> thousands of packages and **completely freezes Neovim** — input is blocked
+> and the only escape is killing the process from another terminal.
+> For this reason `\rb` is disabled in this config and the automatic build
+> is turned off. Basic completion (objects in the current session) still works.
+> If you need full package completion, run `\rb` only inside an interactive
+> compute node session (`srun`) — never on the login node.
 
 **Navigate between editor and R pane:**
 
@@ -509,6 +521,14 @@ brew install r
 ```bash
 mkdir -p ~/.config/nvim
 cp init.lua ~/.config/nvim/init.lua
+```
+
+Also install the hlterm bash fix — this makes `\s` in `.sh` files
+open a proper login shell with your normal prompt instead of a bare `$`:
+
+```bash
+mkdir -p ~/.config/nvim/after/ftplugin
+cp sh_hlterm.lua ~/.config/nvim/after/ftplugin/sh_hlterm.lua
 ```
 
 The `init.lua` template bootstraps [lazy.nvim](https://github.com/folke/lazy.nvim)
