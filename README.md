@@ -236,14 +236,39 @@ are now connected — code sent from the editor runs in the R pane.
 | Show current config | `:RConfigShow` |
 
 > **Note on HPC completion database:**
-> R.nvim can build a completion database of all installed R packages (`\rb`).
-> On HPC systems this scan runs over a network filesystem with potentially
-> thousands of packages and **completely freezes Neovim** — input is blocked
-> and the only escape is killing the process from another terminal.
-> For this reason `\rb` is disabled in this config and the automatic build
-> is turned off. Basic completion (objects in the current session) still works.
-> If you need full package completion, run `\rb` only inside an interactive
-> compute node session (`srun`) — never on the login node.
+> R.nvim provides two levels of completion:
+>
+> 1. **Session completion** — functions and objects from packages loaded
+>    with `library()` in the current session. This works automatically
+>    and immediately as you load packages. No database build needed.
+> 2. **Full database completion** — functions from all installed packages
+>    even if not loaded. Built with `\rb`.
+>
+> On HPC systems the full database build (`\rb`) runs over a network
+> filesystem with thousands of packages and **completely freezes Neovim**
+> — no keyboard input works and the only escape is killing the process
+> from another terminal. For this reason the automatic build is disabled
+> in `~/.Rprofile` via `options(nvimcom.pkg.desc = FALSE)`.
+>
+
+> **For day-to-day HPC work session completion is sufficient** — just
+> load your packages with `library()` as normal and completions work
+> immediately.
+>
+> **To build the full database (one-time, compute node only):**
+> Only needed if you want completion for packages you haven't loaded.
+> Do this when you have time — it can take a while:
+> ```bash
+> srun --partition=short --mem=4gb --cpus-per-task=2 --ntasks=1 --time=2:00:00 --pty bash -l
+> nvim myscript.R
+> \rf                # start R
+> \rb                # build full database — wait for completion
+> ```
+> The database is cached after the first build and reused automatically.
+> Never run `\rb` on the login node.
+>
+> **On a local system:** remove `options(nvimcom.pkg.desc = FALSE)` from
+> `~/.Rprofile` to enable automatic full database building on startup.
 
 **Navigate between editor and R pane:**
 
