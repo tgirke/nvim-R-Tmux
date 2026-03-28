@@ -245,9 +245,8 @@ are now connected — code sent from the editor runs in the R pane.
 >    even if not loaded. Built with `\rb`.
 >
 > On HPC systems the full database build (`\rb`) runs over a network
-> filesystem with thousands of packages and **completely freezes Neovim**
-> — no keyboard input works and the only escape is killing the process
-> from another terminal. For this reason the automatic build is disabled
+> filesystem with thousands of packages can be rather slow. For this 
+> reason the automatic build is disabled
 > in `~/.Rprofile` via `options(nvimcom.pkg.desc = FALSE)`.
 >
 
