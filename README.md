@@ -346,6 +346,8 @@ without conflict.
 | Equalize splits | `Ctrl-w =` |
 | Jump between splits | `Ctrl-h/j/k/l` |
 | Toggle mouse on/off | `Space-m` |
+| Toggle indent lines on/off | `Space-i` |
+| Toggle markdown view | `Space-md` |
 
 ---
 

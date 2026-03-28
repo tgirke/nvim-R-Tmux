@@ -84,6 +84,13 @@ vim.opt.splitbelow     = true   -- split opens below
 vim.opt.scrolloff      = 5      -- keep 5 context lines
 vim.opt.termguicolors  = true   -- 24-bit color
 
+-- Cursor shape and color
+-- Insert mode: bright yellow vertical bar, easy to spot on dark backgrounds.
+-- Change the bg color to taste — options: #00e5ff (cyan), #ff9500 (orange)
+-- Reference: https://neovim.io/doc/user/options.html#'guicursor'
+vim.opt.guicursor = "n-v-c:block,i-ci-ve:ver25-iCursor,r-cr:hor20,o:hor50"
+vim.api.nvim_set_hl(0, "iCursor", { fg = "#000000", bg = "#ffff00" })
+
 -- Split window borders
 -- Unicode box-drawing characters give a clean continuous line
 -- Color is a muted blue-grey that works well with kanagawa-wave

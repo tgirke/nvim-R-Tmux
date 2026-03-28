@@ -207,6 +207,10 @@ vim.opt.splitbelow     = true
 vim.opt.scrolloff      = 5
 vim.opt.termguicolors  = true
 
+-- Cursor: bright yellow bar in insert mode (easy to spot on dark backgrounds)
+vim.opt.guicursor = "n-v-c:block,i-ci-ve:ver25-iCursor,r-cr:hor20,o:hor50"
+vim.api.nvim_set_hl(0, "iCursor", { fg = "#000000", bg = "#ffff00" })
+
 -- Split window borders
 vim.opt.fillchars = { vert = "│", horiz = "─" }
 vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#5c6a7a", bold = false })
