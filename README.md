@@ -135,6 +135,30 @@ installation instructions for each of these.
 
 ## Usage
 
+> **A note on copy/paste in terminal editors**
+>
+> Copy/paste works differently in a terminal-based editor than in a GUI
+> application like RStudio or a web browser. Mouse-based text selection
+> does not work reliably inside Neovim or tmux because the terminal,
+> tmux, and Neovim all compete to handle mouse events.
+>
+> The recommended workflow is simple and consistent across all platforms:
+>
+> | What you want to do | How to do it |
+> |---|---|
+> | Copy a line in nvim | `yy` (yank current line) |
+> | Copy a selection in nvim | `v` to select, then `y` to yank |
+> | Paste in nvim | `p` |
+> | Copy text in terminal | `Ctrl-Shift-C` |
+> | Paste in terminal | `Ctrl-Shift-V` |
+>
+> `yy` and `y` copy to the system clipboard, so you can paste with
+> `Ctrl-V` in any other application (browser, text editor etc.).
+>
+> The mouse (`Space-m` to toggle) is useful for **clicking between
+> panes** but not for selecting and copying text. Keep it on for
+> navigation, use the keyboard for copy/paste.
+
 ### Starting a session
 
 Start a new Tmux session with the default five-window layout:
