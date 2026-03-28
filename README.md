@@ -93,7 +93,22 @@ The script:
 - Prints rollback commands at the end in case you want to undo
 
 After running the script, log out and back in (or `source ~/.bashrc`),
-then follow the [Usage](#usage) section below.
+then complete the plugin install:
+
+```bash
+# 1. Open nvim — lazy.nvim will auto-install all plugins on first launch
+#    (requires internet access; on HPC run this on the login node)
+nvim
+
+# 2. Wait for plugin install to complete, then run inside nvim:
+#    :Lazy sync
+#    :qa
+
+# 3. Reopen nvim — everything should now be working
+nvim myscript.R
+```
+
+Then follow the [Usage](#usage) section below.
 
 > **On HPC clusters:** make sure the required modules are loaded before
 > running the script:
@@ -101,6 +116,8 @@ then follow the [Usage](#usage) section below.
 > module load neovim tmux R
 > bash install_nvim_r_tmux.sh
 > ```
+> And run the first `nvim` launch on the **login node**, not a compute
+> node, since compute nodes may not have internet access for plugin downloads.
 
 ### Prerequisites
 
@@ -699,7 +716,7 @@ Please consult these upstream sources when things change:
 | Tmux | Nicholas Marriott & contributors | https://github.com/tmux/tmux |
 | Tmux manual | Tmux contributors | https://man.openbsd.org/tmux |
 
-**Prior instructions this setup builds on:**
+**Prior art this setup builds on:**
 
 - Original Nvim-R-Tmux tutorial by Thomas Girke (legacy branch):
   https://github.com/tgirke/nvim-R-Tmux/tree/legacy
