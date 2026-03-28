@@ -367,6 +367,7 @@ echo ""
 
 # ---------- bashrc -----------------------------------------------------------
 echo "--- Updating ~/.bashrc ---"
+backup_if_exists "$HOME/.bashrc"
 if ! grep -q "nvim_r_tmux_env" "$HOME/.bashrc" 2>/dev/null; then
 cat >> "$HOME/.bashrc" << 'BASHEOF'
 
@@ -412,7 +413,7 @@ echo "       Rscript -e 'remotes::install_github(\"jalvesaq/colorout\")'"
 echo ""
 echo "------------------------------------------------------------"
 echo "  ROLLBACK (if something goes wrong):"
-for f in "$HOME/.config/nvim" "$HOME/.tmux.conf" "$HOME/.Rprofile"; do
+for f in "$HOME/.config/nvim" "$HOME/.tmux.conf" "$HOME/.Rprofile" "$HOME/.bashrc"; do
     bak="${f}${BACKUP_SUFFIX}"
     if [ -e "$bak" ]; then
         echo "    rm -rf \"$f\" && mv \"$bak\" \"$f\""

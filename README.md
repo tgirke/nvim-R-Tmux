@@ -699,7 +699,7 @@ Please consult these upstream sources when things change:
 | Tmux | Nicholas Marriott & contributors | https://github.com/tmux/tmux |
 | Tmux manual | Tmux contributors | https://man.openbsd.org/tmux |
 
-**Prior art this setup builds on:**
+**Prior instructions this setup builds on:**
 
 - Original Nvim-R-Tmux tutorial by Thomas Girke (legacy branch):
   https://github.com/tgirke/nvim-R-Tmux/tree/legacy
