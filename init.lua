@@ -322,7 +322,42 @@ require("lazy").setup({
   },
 
   -- ---------------------------------------------------------
-  -- indent-blankline.nvim
+  -- nvim-cmp + cmp-r
+  -- Auto-completion as you type in R files.
+  -- cmp-r connects nvim-cmp to R.nvim's built-in language server.
+  -- Ctrl-Space: manual trigger
+  -- Tab / Shift-Tab: navigate completion list
+  -- Enter: confirm selection
+  -- Ctrl-e: dismiss completion popup
+  --
+  -- Repository: https://github.com/hrsh7th/nvim-cmp
+  -- Repository: https://github.com/R-nvim/cmp-r
+  -- ---------------------------------------------------------
+  {
+    "hrsh7th/nvim-cmp",
+    dependencies = {
+      "R-nvim/cmp-r",
+      "hrsh7th/cmp-buffer",
+    },
+    config = function()
+      local cmp = require("cmp")
+      cmp.setup({
+        mapping = cmp.mapping.preset.insert({
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<CR>"]      = cmp.mapping.confirm({ select = false }),
+          ["<Tab>"]     = cmp.mapping.select_next_item(),
+          ["<S-Tab>"]   = cmp.mapping.select_prev_item(),
+          ["<C-e>"]     = cmp.mapping.abort(),
+        }),
+        sources = cmp.config.sources({
+          { name = "cmp_r" },       -- R.nvim completions (objects, functions, args)
+          { name = "buffer" },      -- words from current buffer
+        }),
+      })
+      -- Connect cmp-r to R.nvim
+      require("cmp_r").setup({})
+    end,
+  },
   -- Vertical indentation guide lines.
   -- Toggle: Space-i  (or :IBLToggle)
   --
@@ -460,6 +495,10 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --   \ro                    toggle object browser
 --   \rv                    view data frame (columns auto-aligned, tabstop=20)
 --                          adjust width with: :set tabstop=15 (or any value)
+--   Ctrl-Space             trigger completion manually (insert mode)
+--   Tab / Shift-Tab        navigate completion list
+--   Enter                  confirm completion selection
+--   Ctrl-e                 dismiss completion popup
 --   Alt + -                insert <-
 --   Alt + ,                insert |>
 --   :RMapsDesc             full R.nvim keybinding list
