@@ -276,6 +276,7 @@ require("lazy").setup({
   -- hlterm: Python/Bash/Shell REPL — replaces vimcmdline
   -- https://github.com/jalvesaq/hlterm
   -- \s: start interpreter  |  Enter: send line/selection
+  -- bash --login override is in after/ftplugin/sh_hlterm.lua
   {
     "jalvesaq/hlterm",
     lazy = false,
@@ -374,7 +375,41 @@ LUAEOF
 echo "  Done."
 echo ""
 
-# ---------- R profile --------------------------------------------------------
+# ---------- hlterm bash fix --------------------------------------------------
+echo "--- Installing hlterm bash override (~/.config/nvim/after/ftplugin/) ---"
+mkdir -p "$HOME/.config/nvim/after/ftplugin"
+cat > "$HOME/.config/nvim/after/ftplugin/sh_hlterm.lua" << 'HLTERMEOF'
+-- Override hlterm's sh ftplugin to use bash --login instead of sh
+-- so ~/.bashrc is sourced and the user's normal prompt appears.
+-- Full options table copied from hlterm/ftplugin/sh_hlterm.lua
+-- with only "app" changed from "sh" to "bash --login".
+-- All other fields kept identical to avoid missing field errors.
+
+local function source_lines(lines)
+    local config = require("hlterm").get_config()
+    local f = config.tmp_dir .. "/lines.sh"
+    vim.fn.writefile(lines, f)
+    require("hlterm").send_cmd("sh", ". " .. f)
+end
+
+require("hlterm").set_ft_opts("sh", {
+    nl         = "\n",
+    app        = "bash --login",
+    quit_cmd   = "exit",
+    source_fun = source_lines,
+    send_empty = false,
+    syntax = {
+        match = {
+            { "Input", "^\\$ .*" },
+            { "Input", "^> .*" },
+            { "Error", "^sh: .*" },
+        },
+        keyword = {},
+    },
+})
+HLTERMEOF
+echo "  Done."
+echo ""
 echo "--- Updating ~/.Rprofile ---"
 if ! grep -q "colorout" "$HOME/.Rprofile" 2>/dev/null; then
 cat >> "$HOME/.Rprofile" << 'REOF'
