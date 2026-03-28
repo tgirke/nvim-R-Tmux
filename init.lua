@@ -321,6 +321,28 @@ require("lazy").setup({
   },
 
   -- ---------------------------------------------------------
+  -- render-markdown.nvim
+  -- Renders markdown inside Neovim — no browser needed.
+  -- Works over SSH on HPC and in any terminal.
+  -- Toggle rendered view with Space-rm.
+  --
+  -- Repository: https://github.com/MeanderingProgrammer/render-markdown.nvim
+  -- ---------------------------------------------------------
+  {
+    "MeanderingProgrammer/render-markdown.nvim",
+    ft           = { "markdown" },
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    keys = {
+      { "<leader>rm", "<cmd>RenderMarkdown toggle<cr>",
+        ft = "markdown", desc = "Toggle markdown render" },
+    },
+    opts = {
+      heading = { enabled = true },
+      code    = { enabled = true },
+    },
+  },
+
+  -- ---------------------------------------------------------
   -- kanagawa.nvim
   -- Color scheme. Works in 256-color SSH sessions and
   -- true-color local terminals.
@@ -434,8 +456,12 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 -- File browser (neo-tree):
 --   zz                     toggle open/close
 --   a / d / r              create / delete / rename
+--   H                      toggle hidden files
 --   ?                      help inside neo-tree
 --   q                      close
+--
+-- Markdown preview (in .md files):
+--   Space-rm               toggle rendered markdown view on/off
 --
 -- Splits:
 --   :vsplit                vertical split

@@ -324,6 +324,24 @@ require("lazy").setup({
     opts = {},
   },
 
+  -- render-markdown: renders markdown inside nvim terminal
+  -- No browser needed — works over SSH on HPC
+  -- Toggle with Space-rm in any .md file
+  -- https://github.com/MeanderingProgrammer/render-markdown.nvim
+  {
+    "MeanderingProgrammer/render-markdown.nvim",
+    ft           = { "markdown" },
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    keys = {
+      { "<leader>rm", "<cmd>RenderMarkdown toggle<cr>",
+        ft = "markdown", desc = "Toggle markdown render" },
+    },
+    opts = {
+      heading = { enabled = true },
+      code    = { enabled = true },
+    },
+  },
+
   -- kanagawa: color scheme
   -- https://github.com/rebelot/kanagawa.nvim
   {
