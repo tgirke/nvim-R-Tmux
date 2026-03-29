@@ -322,26 +322,33 @@ require("lazy").setup({
   },
 
   -- ---------------------------------------------------------
-  -- nvim-cmp + cmp-r
+  -- nvim-cmp + cmp-nvim-lsp
   -- Auto-completion as you type in R files.
-  -- cmp-r connects nvim-cmp to R.nvim's built-in language server.
+  -- Uses R.nvim's built-in LSP server for completions.
+  -- cmp-r is no longer needed (archived Dec 2025).
   -- Ctrl-Space: manual trigger
   -- Tab / Shift-Tab: navigate completion list
   -- Enter: confirm selection
   -- Ctrl-e: dismiss completion popup
   --
   -- Repository: https://github.com/hrsh7th/nvim-cmp
-  -- Repository: https://github.com/R-nvim/cmp-r
+  -- Repository: https://github.com/hrsh7th/cmp-nvim-lsp
   -- ---------------------------------------------------------
   {
     "hrsh7th/nvim-cmp",
     lazy = false,
     dependencies = {
-      { "R-nvim/cmp-r", lazy = false },
-      { "hrsh7th/cmp-buffer", lazy = false },
+      { "hrsh7th/cmp-nvim-lsp", lazy = false },
+      { "hrsh7th/cmp-buffer",   lazy = false },
     },
     config = function()
-      local cmp = require("cmp")
+      local cmp     = require("cmp")
+      local cmp_lsp = require("cmp_nvim_lsp")
+
+      -- Tell R.nvim's built-in LSP about nvim-cmp's extra capabilities
+      local capabilities = cmp_lsp.default_capabilities()
+      vim.lsp.config("*", { capabilities = capabilities })
+
       cmp.setup({
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
@@ -351,12 +358,10 @@ require("lazy").setup({
           ["<C-e>"]     = cmp.mapping.abort(),
         }),
         sources = cmp.config.sources({
-          { name = "cmp_r" },       -- R.nvim completions (objects, functions, args)
-          { name = "buffer" },      -- words from current buffer
+          { name = "nvim_lsp" },  -- R.nvim built-in LSP completions
+          { name = "buffer" },    -- words from current buffer
         }),
       })
-      -- Connect cmp-r to R.nvim
-      require("cmp_r").setup({})
     end,
   },
   -- Vertical indentation guide lines.
