@@ -108,12 +108,6 @@ if (interactive() && Sys.getenv("NVIMR_ID") != "") {
     library(colorout, quietly = TRUE),
     error = function(e) invisible(NULL)
   )
-  # HPC: disable automatic completion database build on startup.
-  # On HPC with large R libraries on network filesystems (GPFS/NFS)
-  # the build locks up Neovim completely. Build it explicitly once
-  # on a compute node with srun using \rb, then it is cached.
-  # Remove or comment out this line on a local system for automatic build.
-  options(nvimcom.pkg.desc = FALSE)
 }
 REOF
 echo "  Appended colorout loader to ~/.Rprofile"

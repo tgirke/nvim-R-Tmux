@@ -85,8 +85,8 @@ bash install_nvim_r_tmux.sh
 ```
 
 The script:
-- Backs up any existing `~/.config/nvim`, `~/.tmux.conf` and `~/.Rprofile`
-  with a timestamp suffix before making any changes
+- Backs up any existing `~/.config/nvim`, `~/.tmux.conf`, `~/.Rprofile`
+  and `~/.bashrc` with a timestamp suffix before making any changes
 - Writes `~/.config/nvim/init.lua` with all plugins configured
 - Writes `~/.config/nvim/after/ftplugin/sh_hlterm.lua` to fix the bash
   prompt when using `\s` in shell scripts
@@ -238,36 +238,29 @@ are now connected — code sent from the editor runs in the R pane.
 > **Note on HPC completion database:**
 > R.nvim provides two levels of completion:
 >
-> 1. **Session completion** — functions and objects from packages loaded
->    with `library()` in the current session. This works automatically
->    and immediately as you load packages. No database build needed.
-> 2. **Full database completion** — functions from all installed packages
->    even if not loaded. Built with `\rb`.
+> 1. **Session completion** — functions from packages loaded with `library()`
+>    work automatically and immediately. No database build needed.
+> 2. **Full database completion** — all installed packages even if not loaded.
+>    Built automatically by `rnvimserver` in the background when R starts.
 >
-> On HPC systems the full database build (`\rb`) runs over a network
-> filesystem with thousands of packages can be rather slow. For this 
-> reason the automatic build is disabled
-> in `~/.Rprofile` via `options(nvimcom.pkg.desc = FALSE)`.
+> The database is stored in `~/.cache/R.vim/` as `omnils_*` files, one per
+> package. Once built it is reused in all future sessions and only rebuilt
+> if packages are updated.
 >
-
-> **For day-to-day HPC work session completion is sufficient** — just
-> load your packages with `library()` as normal and completions work
-> immediately.
+> On the **login node** startup should be fast once the cache is built.
+> If you experience Neovim freezing on startup, add this to `~/.Rprofile`
+> to skip the slow package description part of the build:
+> ```r
+> options(nvimcom.pkg.desc = FALSE)
+> ```
 >
-> **To build the full database (one-time, compute node only):**
-> Only needed if you want completion for packages you haven't loaded.
-> Do this when you have time — it can take a while:
+> **To force a full database rebuild (compute node recommended):**
 > ```bash
+> rm -rf ~/.cache/R.vim/    # delete old cache
 > srun --partition=short --mem=4gb --cpus-per-task=2 --ntasks=1 --time=2:00:00 --pty bash -l
 > nvim myscript.R
-> \rf                # start R
-> \rb                # build full database — wait for completion
+> \rf                       # rnvimserver rebuilds database automatically
 > ```
-> The database is cached after the first build and reused automatically.
-> Never run `\rb` on the login node.
->
-> **On a local system:** remove `options(nvimcom.pkg.desc = FALSE)` from
-> `~/.Rprofile` to enable automatic full database building on startup.
 
 **Navigate between editor and R pane:**
 
