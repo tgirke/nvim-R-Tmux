@@ -230,9 +230,13 @@ require("lazy").setup({
         -- HPC: automatic completion database build is disabled via ~/.Rprofile
         -- (options(nvimcom.pkg.desc = FALSE)) to prevent Neovim from freezing
         -- on network filesystems with large R libraries.
-        -- Build it explicitly once on a compute node with \rb when needed.
+        -- Build it explicitly once on a compute node with :RBuildTags when needed.
         -- On a local system comment out that Rprofile line for automatic builds.
         objbr_auto_start = false,
+        -- Uncomment the line below to disable ALL library scanning by nvimcom.
+        -- Use this if a specific package (e.g. shinyDSP) causes nvim to hang.
+        -- Basic R session and session-object completion still work.
+        -- start_libs = "",
         hook = {
           on_filetype = function()
             -- Enter sends line (normal) or selection (visual) to R
