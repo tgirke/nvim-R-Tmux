@@ -465,6 +465,21 @@ end, { desc = "Toggle mouse" })
 vim.keymap.set("n", "<leader>z", "zM", { desc = "Close all folds" })
 vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
 
+-- Toggle auto-completion on/off (Space-c)
+-- Useful when the popup is distracting; Ctrl-Space still works when off
+vim.keymap.set("n", "<leader>c", function()
+  local cmp = require("cmp")
+  if cmp.get_config().completion.autocomplete then
+    cmp.setup({ completion = { autocomplete = false } })
+    print("Completion OFF  (Ctrl-Space still works)")
+  else
+    cmp.setup({ completion = { autocomplete = {
+      require("cmp.types").cmp.TriggerEvent.TextChanged
+    }}})
+    print("Completion ON")
+  end
+end, { desc = "Toggle auto-completion" })
+
 -- Auto-set tabstop=20 when viewing R data frames with \rv
 -- Aligns column titles with column content in the viewer buffer.
 -- Also disables line wrapping so wide tables stay readable.
@@ -505,6 +520,7 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --   Tab / Shift-Tab        navigate completion list
 --   Enter                  confirm completion selection
 --   Ctrl-e                 dismiss completion popup
+--   Space-c                toggle auto-completion on/off
 --   Alt + -                insert <-
 --   Alt + ,                insert |>
 --   :RMapsDesc             full R.nvim keybinding list
