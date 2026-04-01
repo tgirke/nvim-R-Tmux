@@ -243,11 +243,17 @@ are now connected — code sent from the editor runs in the R pane.
 > 2. **Full database completion** — all installed packages even if not loaded.
 >    Built automatically by `rnvimserver` in the background when R starts.
 >
-> The database is stored in `~/.cache/R.vim/` as `omnils_*` files, one per
-> package. Once built it is reused in all future sessions and only rebuilt
-> if packages are updated.
+> The database is stored in `~/.cache/R.vim/` and reused in all future
+> sessions. It only needs rebuilding if R packages are updated.
 >
-> On the **login node** startup should be fast once the cache is built.
+> **If nvimcom hangs on the login node** during the completion database scan,
+> the most likely cause is insufficient CPU/RAM limits on the login node.
+> Ask your sysadmin to increase the per-user limits. On UCR HPCC the
+> minimum that works is **1 CPU core and 1GB RAM** — the default
+> 0.5 CPU / 0.5GB is insufficient for nvimcom to scan large Bioconductor
+> libraries. Once the limits are increased, startup works normally on
+> both login and compute nodes.
+
 > If you experience Neovim freezing on startup, add this to `~/.Rprofile`
 > to skip the slow package description part of the build:
 > ```r
@@ -257,7 +263,6 @@ are now connected — code sent from the editor runs in the R pane.
 > **To force a full database rebuild (compute node recommended):**
 > ```bash
 > rm -rf ~/.cache/R.vim/    # delete old cache
-> srun --partition=short --mem=4gb --cpus-per-task=2 --ntasks=1 --time=2:00:00 --pty bash -l
 > nvim myscript.R
 > \rf                       # rnvimserver rebuilds database automatically
 > ```
@@ -389,8 +394,8 @@ Toggle the file browser with `zz`.
 | `zz` | toggle open / close |
 | `Enter` | open file |
 | `a` | create file or directory |
-| `d` | delete |
-| `r` | rename |
+| `s` | open file with vertical split |
+| `S` | open file with horizontal split |
 | `H` | toggle hidden files |
 | `?` | help |
 | `q` | close |
