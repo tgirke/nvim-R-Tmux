@@ -511,7 +511,7 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --   Enter (visual)         send selection to R
 --   \aa                    send entire file
 --   \ff                    send current function
---   \ce                    send current chunk (Rmd/Quarto)
+--   \cc                    send current chunk (Rmd/Quarto)
 --   \ch                    send all chunks above cursor
 --   \rh                    R help for word under cursor
 --   \ro                    toggle object browser
