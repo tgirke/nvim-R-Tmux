@@ -143,8 +143,9 @@ if command -v vd &>/dev/null; then
 elif command -v pip3 &>/dev/null || command -v pip &>/dev/null; then
   PIP=$(command -v pip3 || command -v pip)
   echo "  Using: $PIP"
-  $PIP install --user visidata || \
-  $PIP install --user visidata --break-system-packages
+  if ! $PIP install --user visidata 2>/dev/null; then
+    $PIP install --user visidata --break-system-packages
+  fi
   # Check common install locations explicitly
   if command -v vd &>/dev/null; then
     echo "  VisiData installed: $(vd --version 2>&1 | head -1)"
