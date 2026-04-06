@@ -239,7 +239,8 @@ are now connected — code sent from the editor runs in the R pane.
 > Opens the data frame under the cursor in [VisiData](https://www.visidata.org)
 > — a terminal-based viewer with paging, sorting, filtering and search.
 > VisiData is installed automatically by the install script via
-> `pip install --user visidata`. It works over SSH with no browser or
+> `pip install --user visidata`. On macOS you can also use
+> `brew install visidata`. It works over SSH with no browser or
 > GUI required and handles large data frames efficiently.
 > Press `q` to quit VisiData and return to your R script.
 > If VisiData is not installed, `\rv` falls back to displaying the data
