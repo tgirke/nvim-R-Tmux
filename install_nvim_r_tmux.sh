@@ -116,23 +116,7 @@ else
 fi
 echo ""
 
-# ---------- visidata ---------------------------------------------------------
-echo "--- Installing VisiData (~/.local/bin/vd) ---"
-if command -v vd &>/dev/null; then
-  echo "  VisiData already installed: $(vd --version 2>&1 | head -1)"
-elif command -v pip3 &>/dev/null || command -v pip &>/dev/null; then
-  PIP=$(command -v pip3 || command -v pip)
-  $PIP install --user visidata --quiet
-  if command -v vd &>/dev/null; then
-    echo "  VisiData installed: $(vd --version 2>&1 | head -1)"
-  else
-    echo "  VisiData install may need: source ~/.bashrc (PATH update)"
-  fi
-else
-  echo "  pip not found — skipping VisiData install."
-  echo "  Install manually: pip install --user visidata"
-fi
-echo ""
+# ---------- bashrc -----------------------------------------------------------
 echo "--- Updating ~/.bashrc ---"
 backup_if_exists "$HOME/.bashrc"
 if ! grep -q "nvim_r_tmux_env" "$HOME/.bashrc" 2>/dev/null; then
@@ -147,6 +131,34 @@ BASHEOF
 echo "  Appended to ~/.bashrc"
 else
   echo "  ~/.bashrc already updated, skipping."
+fi
+echo ""
+
+# ---------- visidata ---------------------------------------------------------
+# Must run after bashrc update — export PATH first so vd check works
+export PATH="$HOME/.local/bin:$PATH"
+echo "--- Installing VisiData (~/.local/bin/vd) ---"
+if command -v vd &>/dev/null; then
+  echo "  VisiData already installed: $(vd --version 2>&1 | head -1)"
+elif command -v pip3 &>/dev/null || command -v pip &>/dev/null; then
+  PIP=$(command -v pip3 || command -v pip)
+  echo "  Using: $PIP"
+  $PIP install --user visidata
+  # Check common install locations explicitly
+  if command -v vd &>/dev/null; then
+    echo "  VisiData installed: $(vd --version 2>&1 | head -1)"
+  elif [ -f "$HOME/.local/bin/vd" ]; then
+    echo "  VisiData installed to ~/.local/bin/vd (active after: source ~/.bashrc)"
+  else
+    # pip may install to a different location on some systems (e.g. Mac)
+    VD_PATH=$(python3 -c "import site; print(site.getuserbase())" 2>/dev/null)
+    echo "  VisiData may be installed under: $VD_PATH/bin/vd"
+    echo "  Add to PATH: export PATH=\"$VD_PATH/bin:\$PATH\""
+  fi
+else
+  echo "  pip not found — skipping VisiData install."
+  echo "  Install manually: pip install --user visidata"
+  echo "  Or on Mac: brew install visidata"
 fi
 echo ""
 
