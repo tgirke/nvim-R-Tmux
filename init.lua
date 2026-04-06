@@ -226,6 +226,21 @@ require("lazy").setup({
         min_editor_width = 72,
         rconsole_width   = 78,
         auto_quit        = true,
+        -- Data frame viewer (\rv) — uses VisiData if installed
+        -- VisiData (vd) is a terminal-based viewer with paging, sorting,
+        -- filtering and search. Works over SSH, handles large data frames.
+        -- Install: pip install --user visidata
+        -- The "terminal:" prefix opens vd in a proper nvim terminal split.
+        -- If vd is not installed, falls back to nvim buffer display.
+        -- n_lines=0 means all rows (default -1 limits to ~1200 rows).
+        view_df = {
+          n_lines  = 0,
+          csv_sep  = "\t",
+          how      = "tabnew",
+          open_app = vim.fn.executable("vd") == 1 and "terminal:vd" or "",
+          open_fun = "",
+          save_fun = "",
+        },
 
         -- HPC completion database: built automatically by rnvimserver on \rf
         -- and cached in ~/.cache/R.vim/. If startup hangs on the login node,
@@ -515,8 +530,9 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --   \ch                    send all chunks above cursor
 --   \rh                    R help for word under cursor
 --   \ro                    toggle object browser
---   \rv                    view data frame (columns auto-aligned, tabstop=20)
---                          adjust width with: :set tabstop=15 (or any value)
+--   \rv                    view data frame in VisiData (paging, sorting, search)
+--                          install: pip install --user visidata
+--                          quit VisiData: q
 --   Ctrl-Space             trigger completion manually (insert mode)
 --   Tab / Shift-Tab        navigate completion list
 --   Enter                  confirm completion selection

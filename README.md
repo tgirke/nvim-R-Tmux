@@ -235,6 +235,16 @@ are now connected — code sent from the editor runs in the R pane.
 | List all keybindings | `:RMapsDesc` |
 | Show current config | `:RConfigShow` |
 
+> **Data frame viewer (`\rv`):**
+> Opens the data frame under the cursor in [VisiData](https://www.visidata.org)
+> — a terminal-based viewer with paging, sorting, filtering and search.
+> VisiData is installed automatically by the install script via
+> `pip install --user visidata`. It works over SSH with no browser or
+> GUI required and handles large data frames efficiently.
+> Press `q` to quit VisiData and return to your R script.
+> If VisiData is not installed, `\rv` falls back to displaying the data
+> frame in a nvim buffer (limited to ~1200 rows).
+
 > **Note on HPC completion database:**
 > R.nvim provides two levels of completion:
 >
@@ -254,17 +264,17 @@ are now connected — code sent from the editor runs in the R pane.
 > libraries. Once the limits are increased, startup works normally on
 > both login and compute nodes.
 
-> If you experience Neovim freezing on startup, add this to `~/.Rprofile`
-> to skip the slow package description part of the build:
+> If increasing limits is not possible, add this to `~/.Rprofile` to skip
+> the slow package description part of the scan:
 > ```r
 > options(nvimcom.pkg.desc = FALSE)
 > ```
 >
-> **To force a full database rebuild (compute node recommended):**
+> **To force a full database rebuild:**
 > ```bash
 > rm -rf ~/.cache/R.vim/    # delete old cache
 > nvim myscript.R
-> \rf                       # rnvimserver rebuilds database automatically
+> \rf    # rnvimserver rebuilds the database automatically
 > ```
 
 **Navigate between editor and R pane:**
@@ -375,8 +385,6 @@ without conflict.
 | Open terminal | `:terminal` |
 | Exit terminal mode | `Esc` |
 | Vertical split | `:vsplit` |
-| Horizontal split | `:split` |
-| Maximize current split | `gz` |
 | Equalize splits | `Ctrl-w =` |
 | Jump between splits | `Ctrl-h/j/k/l` |
 | Toggle mouse on/off | `Space-m` |
