@@ -28,25 +28,21 @@
 
 set -euo pipefail
 
-# Initialize module system if available (HPC clusters)
-# Source bash-specific module init directly, bypassing shell detection
-# which can fail in non-interactive subshells
+# On HPC clusters, initialize the module system if needed and load tools.
+# We source the bash-specific init directly to avoid shell detection issues
+# in non-interactive subshells. The 2>/dev/null suppresses known bugs in
+# some module system versions (e.g. uasked variable error).
 set +e
-if [ -f /usr/share/Modules/init/bash ]; then
+if [ -f /usr/share/Modules/init/bash ] && ! command -v module &>/dev/null; then
   source /usr/share/Modules/init/bash 2>/dev/null
-elif [ -f /usr/share/modules/init/bash ]; then
-  source /usr/share/modules/init/bash 2>/dev/null
-elif [ -f /etc/profile.d/modules.sh ]; then
-  source /etc/profile.d/modules.sh 2>/dev/null
 fi
 set -e
 
-# On HPC clusters, load required modules if module command is available
-# and the tools are not already in PATH
+# Load required modules if available and not already in PATH
 if command -v module &>/dev/null; then
   command -v nvim &>/dev/null || module load neovim/0.11.4 2>/dev/null || module load neovim 2>/dev/null || true
-  command -v tmux &>/dev/null || module load tmux   2>/dev/null || true
-  command -v R    &>/dev/null || module load R       2>/dev/null || true
+  command -v tmux &>/dev/null || module load tmux 2>/dev/null || true
+  command -v R    &>/dev/null || module load R    2>/dev/null || true
 fi
 
 BACKUP_SUFFIX=".bak_$(date +%Y%m%d_%H%M%S)"
