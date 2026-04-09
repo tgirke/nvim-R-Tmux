@@ -28,6 +28,16 @@
 
 set -euo pipefail
 
+# Initialize module system if available (HPC clusters)
+# This ensures 'module' command works in non-interactive shells
+if [ -f /etc/profile.d/modules.sh ]; then
+  source /etc/profile.d/modules.sh
+elif [ -f /usr/share/modules/init/bash ]; then
+  source /usr/share/modules/init/bash
+elif [ -f /etc/bashrc ]; then
+  source /etc/bashrc
+fi
+
 BACKUP_SUFFIX=".bak_$(date +%Y%m%d_%H%M%S)"
 
 echo "============================================================"
@@ -45,8 +55,11 @@ backup_if_exists() {
 
 require_cmd() {
     if ! command -v "$1" &>/dev/null; then
-        echo "ERROR: '$1' not found. Please load the module first."
-        echo "       e.g.: module load neovim tmux R"
+        echo "ERROR: '$1' not found."
+        echo "       On HPC: load modules first, then run the script in the same shell:"
+        echo "         module load neovim tmux R && bash install_nvim_r_tmux.sh"
+        echo "       Or use a login shell:"
+        echo "         bash -l install_nvim_r_tmux.sh"
         exit 1
     fi
 }
@@ -67,6 +80,7 @@ echo "--- Backing up existing configs ---"
 backup_if_exists "$HOME/.config/nvim"
 backup_if_exists "$HOME/.tmux.conf"
 backup_if_exists "$HOME/.Rprofile"
+backup_if_exists "$HOME/.bash_profile"
 echo ""
 
 # ---------- clip script (OSC 52 clipboard) -----------------------------------
@@ -123,6 +137,10 @@ if ! grep -q "nvim_r_tmux_env" "$HOME/.bashrc" 2>/dev/null; then
 cat >> "$HOME/.bashrc" << 'BASHEOF'
 
 # --- nvim_r_tmux_env ---
+# Load HPC modules if module command is available
+if command -v module &>/dev/null; then
+  module load neovim tmux R 2>/dev/null || true
+fi
 export PATH="$HOME/.local/bin:$PATH"
 alias vim=nvim
 export EDITOR=nvim
@@ -134,6 +152,20 @@ else
 fi
 echo ""
 
+# Create ~/.bash_profile if missing — ensures ~/.bashrc is sourced on login
+# New HPC accounts often have neither file, causing module command not found
+if [ ! -f "$HOME/.bash_profile" ]; then
+  echo "--- Creating ~/.bash_profile ---"
+  cat > "$HOME/.bash_profile" << 'PROFEOF'
+# Source ~/.bashrc for login shells (created by nvim-R-Tmux installer)
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+PROFEOF
+  echo "  Done."
+  echo ""
+fi
+
 # ---------- visidata ---------------------------------------------------------
 # Must run after bashrc update — export PATH first so vd check works
 export PATH="$HOME/.local/bin:$PATH"
@@ -143,7 +175,9 @@ if command -v vd &>/dev/null; then
 elif command -v pip3 &>/dev/null || command -v pip &>/dev/null; then
   PIP=$(command -v pip3 || command -v pip)
   echo "  Using: $PIP"
-  $PIP install --user visidata
+  if ! $PIP install --user visidata 2>/dev/null; then
+    $PIP install --user visidata --break-system-packages
+  fi
   # Check common install locations explicitly
   if command -v vd &>/dev/null; then
     echo "  VisiData installed: $(vd --version 2>&1 | head -1)"
@@ -192,7 +226,7 @@ echo "       Rscript -e 'remotes::install_github(\"jalvesaq/colorout\")'"
 echo ""
 echo "------------------------------------------------------------"
 echo "  ROLLBACK (if something goes wrong):"
-for f in "$HOME/.config/nvim" "$HOME/.tmux.conf" "$HOME/.Rprofile" "$HOME/.bashrc"; do
+for f in "$HOME/.config/nvim" "$HOME/.tmux.conf" "$HOME/.Rprofile" "$HOME/.bashrc" "$HOME/.bash_profile"; do
     bak="${f}${BACKUP_SUFFIX}"
     if [ -e "$bak" ]; then
         echo "    rm -rf \"$f\" && mv \"$bak\" \"$f\""

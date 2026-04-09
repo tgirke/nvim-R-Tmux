@@ -112,14 +112,14 @@ nvim myscript.R
 
 Then follow the [Usage](#usage) section below.
 
-> **On HPC clusters:** make sure the required modules are loaded before
-> running the script:
+> **On HPC clusters:** modules must be loaded in the same shell session
+> before running the install script. Use `&&` to load modules and run
+> the script in the same shell:
 > ```bash
-> module load neovim tmux R
-> bash install_nvim_r_tmux.sh
+> module load neovim tmux R && bash install_nvim_r_tmux.sh
 > ```
-> And run the first `nvim` launch on the **login node**, not a compute
-> node, since compute nodes may not have internet access for plugin downloads.
+> If `nvim` is still not found after this, check that the modules loaded
+> correctly with `module list` and `which nvim`.
 
 ### Prerequisites
 
@@ -264,7 +264,7 @@ are now connected — code sent from the editor runs in the R pane.
 > 0.5 CPU / 0.5GB is insufficient for nvimcom to scan large Bioconductor
 > libraries. Once the limits are increased, startup works normally on
 > both login and compute nodes.
-
+>
 > If increasing limits is not possible, add this to `~/.Rprofile` to skip
 > the slow package description part of the scan:
 > ```r
@@ -273,7 +273,7 @@ are now connected — code sent from the editor runs in the R pane.
 >
 > **To force a full database rebuild:**
 > ```bash
-> rm -rf ~/.cache/R.vim/    # delete old cache
+> rm -rf ~/.cache/R.vim/
 > nvim myscript.R
 > \rf    # rnvimserver rebuilds the database automatically
 > ```
