@@ -362,12 +362,8 @@ require("lazy").setup({
       local cmp_lsp = require("cmp_nvim_lsp")
 
       -- Tell R.nvim's built-in LSP about nvim-cmp's extra capabilities
-      -- vim.lsp.config is only available in Neovim 0.11+
-      -- For 0.10 compatibility we skip this — completion still works
       local capabilities = cmp_lsp.default_capabilities()
-      if vim.lsp.config then
-        vim.lsp.config("*", { capabilities = capabilities })
-      end
+      vim.lsp.config("*", { capabilities = capabilities })
 
       cmp.setup({
         mapping = cmp.mapping.preset.insert({
