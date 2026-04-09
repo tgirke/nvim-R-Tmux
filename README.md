@@ -116,7 +116,7 @@ Then follow the [Usage](#usage) section below.
 > before running the install script. Use `&&` to load modules and run
 > the script in the same shell:
 > ```bash
-> module load neovim tmux R && bash install_nvim_r_tmux.sh
+> module load neovim/0.11.4 tmux R && bash install_nvim_r_tmux.sh
 > ```
 > If `nvim` is still not found after this, check that the modules loaded
 > correctly with `module list` and `which nvim`.
@@ -386,6 +386,8 @@ without conflict.
 | Open terminal | `:terminal` |
 | Exit terminal mode | `Esc` |
 | Vertical split | `:vsplit` |
+| Horizontal split | `:split` |
+| Maximize current split | `gz` |
 | Equalize splits | `Ctrl-w =` |
 | Jump between splits | `Ctrl-h/j/k/l` |
 | Toggle mouse on/off | `Space-m` |

@@ -44,7 +44,7 @@ set -e
 # On HPC clusters, load required modules if module command is available
 # and the tools are not already in PATH
 if command -v module &>/dev/null; then
-  command -v nvim &>/dev/null || module load neovim 2>/dev/null || true
+  command -v nvim &>/dev/null || module load neovim/0.11.4 2>/dev/null || module load neovim 2>/dev/null || true
   command -v tmux &>/dev/null || module load tmux   2>/dev/null || true
   command -v R    &>/dev/null || module load R       2>/dev/null || true
 fi
@@ -150,7 +150,7 @@ cat >> "$HOME/.bashrc" << 'BASHEOF'
 # --- nvim_r_tmux_env ---
 # Load HPC modules if module command is available
 if command -v module &>/dev/null; then
-  module load neovim tmux R 2>/dev/null || true
+  module load neovim/0.11.4 tmux R 2>/dev/null || true
 fi
 export PATH="$HOME/.local/bin:$PATH"
 alias vim=nvim
