@@ -29,13 +29,24 @@
 set -euo pipefail
 
 # Initialize module system if available (HPC clusters)
-# This ensures 'module' command works in non-interactive shells
-if [ -f /etc/profile.d/modules.sh ]; then
-  source /etc/profile.d/modules.sh
+# Source bash-specific module init directly, bypassing shell detection
+# which can fail in non-interactive subshells
+set +e
+if [ -f /usr/share/Modules/init/bash ]; then
+  source /usr/share/Modules/init/bash 2>/dev/null
 elif [ -f /usr/share/modules/init/bash ]; then
-  source /usr/share/modules/init/bash
-elif [ -f /etc/bashrc ]; then
-  source /etc/bashrc
+  source /usr/share/modules/init/bash 2>/dev/null
+elif [ -f /etc/profile.d/modules.sh ]; then
+  source /etc/profile.d/modules.sh 2>/dev/null
+fi
+set -e
+
+# On HPC clusters, load required modules if module command is available
+# and the tools are not already in PATH
+if command -v module &>/dev/null; then
+  command -v nvim &>/dev/null || module load neovim 2>/dev/null || true
+  command -v tmux &>/dev/null || module load tmux   2>/dev/null || true
+  command -v R    &>/dev/null || module load R       2>/dev/null || true
 fi
 
 BACKUP_SUFFIX=".bak_$(date +%Y%m%d_%H%M%S)"
