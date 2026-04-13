@@ -104,21 +104,22 @@ cp "$(dirname "$0")/sh_hlterm.lua" "$HOME/.config/nvim/after/ftplugin/sh_hlterm.
 echo "  Done."
 echo ""
 # ---------- Rprofile ---------------------------------------------------------
-# Guards against re-running: checks for nvimcom.max_threads which is the
-# most recently added setting. If already present the whole block is skipped.
+# Guards against re-running: checks for mc.cores which is the most recently
+# added setting. If already present the whole block is skipped.
 echo "--- Updating ~/.Rprofile ---"
-if ! grep -q "nvimcom.max_threads" "$HOME/.Rprofile" 2>/dev/null; then
+if ! grep -q "nvim_r_tmux_env" "$HOME/.Rprofile" 2>/dev/null; then
 cat >> "$HOME/.Rprofile" << 'REOF'
 # --- nvim_r_tmux_env ---
-# Limit rnvimserver background workers to 1 to prevent bo_code.R process
-# count from scaling with SLURM CPU allocation (--cpus-per-task).
-# Without this, rnvimserver detects available CPUs and spawns one bo_code.R
-# worker per CPU per package batch, leading to 25+ processes on a 4-CPU node.
-options(nvimcom.max_threads = 1)
+# Limit parallel workers for nvimcom's completion database builder (bol.R).
+# nvimcom uses parallel::mclapply(mc.cores = detectCores() - 2) to index
+# packages, which scales with SLURM --cpus-per-task and causes 20+ bo_code.R
+# processes on compute nodes. mc.cores is the standard R option that mclapply
+# respects directly, so setting it to 1 caps workers regardless of CPU count.
+options(mc.cores = 1)
 
 # Disable nvimcom package description indexing.
-# Prevents R.nvim from spawning multiple background bo_code.R processes
-# to index all installed packages on HPC shared login and compute nodes.
+# Prevents additional bo_code.R processes from being spawned to read
+# DESCRIPTION files for all installed packages on startup.
 options(nvimcom.pkg.desc = FALSE)
 
 # Load colorout for colored R output in nvim terminal (if installed)
