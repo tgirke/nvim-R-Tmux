@@ -8,6 +8,7 @@
 #     nvim-treesitter, neo-tree, indent-blankline, kanagawa
 #   - Tmux config (.tmux.conf)
 #   - OSC 52 clip script for clipboard over SSH
+#   - Patched bol.R to cap bo_code.R workers at 1 on HPC nodes
 #   - Shell convenience aliases in .bashrc
 #
 # Assumptions:
@@ -97,6 +98,19 @@ mkdir -p "$HOME/.config/nvim"
 cp "$(dirname "$0")/init.lua" "$HOME/.config/nvim/init.lua"
 echo "  Done."
 echo ""
+# ---------- patched bol.R ----------------------------------------------------
+# nvimcom's bol.R hardcodes parallel::detectCores() - 2 as the worker count
+# for its completion database builder, ignoring all R options and environment
+# variables. On SLURM nodes with --cpus-per-task > 2 this causes 20+ bo_code.R
+# processes per session. The patched bol.R in this repo caps num_cores at 1L.
+#
+# This file is installed to ~/.config/nvim/bol.R so that the build hook in
+# init.lua can copy it into the lazy.nvim plugin directory after each
+# :Lazy sync / :Lazy update, ensuring the patch survives plugin updates.
+echo "--- Installing patched bol.R (~/.config/nvim/bol.R) ---"
+cp "$(dirname "$0")/bol.R" "$HOME/.config/nvim/bol.R"
+echo "  Done."
+echo ""
 # ---------- hlterm bash fix --------------------------------------------------
 echo "--- Installing hlterm bash override (~/.config/nvim/after/ftplugin/) ---"
 mkdir -p "$HOME/.config/nvim/after/ftplugin"
@@ -104,19 +118,11 @@ cp "$(dirname "$0")/sh_hlterm.lua" "$HOME/.config/nvim/after/ftplugin/sh_hlterm.
 echo "  Done."
 echo ""
 # ---------- Rprofile ---------------------------------------------------------
-# Guards against re-running: checks for mc.cores which is the most recently
-# added setting. If already present the whole block is skipped.
+# Guards against re-running: checks for nvim_r_tmux_env marker.
 echo "--- Updating ~/.Rprofile ---"
 if ! grep -q "nvim_r_tmux_env" "$HOME/.Rprofile" 2>/dev/null; then
 cat >> "$HOME/.Rprofile" << 'REOF'
 # --- nvim_r_tmux_env ---
-# Limit parallel workers for nvimcom's completion database builder (bol.R).
-# nvimcom uses parallel::mclapply(mc.cores = detectCores() - 2) to index
-# packages, which scales with SLURM --cpus-per-task and causes 20+ bo_code.R
-# processes on compute nodes. mc.cores is the standard R option that mclapply
-# respects directly, so setting it to 1 caps workers regardless of CPU count.
-options(mc.cores = 1)
-
 # Disable nvimcom package description indexing.
 # Prevents additional bo_code.R processes from being spawned to read
 # DESCRIPTION files for all installed packages on startup.
@@ -223,6 +229,7 @@ echo "  3. Open an R file and install plugins (first launch only):"
 echo "       nvim myscript.R"
 echo "       # lazy.nvim installs plugins automatically"
 echo "       # then: :Lazy sync"
+echo "       # the build hook in init.lua deploys the patched bol.R"
 echo ""
 echo "  4. Start R with:  \\rf"
 echo "     Send lines with: Enter"

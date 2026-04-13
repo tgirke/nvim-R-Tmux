@@ -217,11 +217,43 @@ require("lazy").setup({
   --   Alt-,   insert |>
   --   :RMapsDesc    full keybinding list
   --   :RConfigShow  current config values
+  --
+  -- HPC bo_code.R worker fix:
+  --   nvimcom's bol.R hardcodes parallel::detectCores() - 2 as the worker
+  --   count for its completion database builder, ignoring all R options and
+  --   environment variables. On SLURM nodes with --cpus-per-task > 2 this
+  --   causes 20+ bo_code.R processes per session. The build hook below
+  --   deploys a patched bol.R (stored in ~/.config/nvim/bol.R) that caps
+  --   num_cores at 1L. The patch is reapplied automatically on :Lazy update.
   -- ---------------------------------------------------------
   {
     "R-nvim/R.nvim",
     lazy         = false,
     dependencies = { "nvim-treesitter/nvim-treesitter" },
+    build = function()
+      local src  = vim.fn.expand("~/.config/nvim/bol.R")
+      local dst  = vim.fn.stdpath("data")
+        .. "/lazy/R.nvim/nvimcom/R/bol.R"
+      if vim.fn.filereadable(src) == 1 then
+        local ok = vim.fn.system("cp " .. src .. " " .. dst)
+        if vim.v.shell_error == 0 then
+          vim.notify(
+            "R.nvim: deployed patched bol.R (bo_code.R workers capped at 1)",
+            vim.log.levels.INFO
+          )
+        else
+          vim.notify(
+            "R.nvim: WARNING — failed to deploy patched bol.R: " .. ok,
+            vim.log.levels.WARN
+          )
+        end
+      else
+        vim.notify(
+          "R.nvim: WARNING — ~/.config/nvim/bol.R not found, skipping patch",
+          vim.log.levels.WARN
+        )
+      end
+    end,
     config = function()
       require("r").setup({
         R_args           = { "--quiet", "--no-save" },
