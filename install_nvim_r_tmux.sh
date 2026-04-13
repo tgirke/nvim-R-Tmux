@@ -105,8 +105,14 @@ echo "  Done."
 echo ""
 # ---------- Rprofile ---------------------------------------------------------
 echo "--- Updating ~/.Rprofile ---"
-if ! grep -q "colorout" "$HOME/.Rprofile" 2>/dev/null; then
+if ! grep -q "nvimcom.pkg.desc" "$HOME/.Rprofile" 2>/dev/null; then
 cat >> "$HOME/.Rprofile" << 'REOF'
+# --- nvim_r_tmux_env ---
+# Disable nvimcom package description indexing.
+# Prevents R.nvim from spawning multiple background bo_code.R processes
+# to index all installed packages on HPC shared login nodes.
+options(nvimcom.pkg.desc = FALSE)
+
 # Load colorout for colored R output in nvim terminal (if installed)
 # https://github.com/jalvesaq/colorout
 if (interactive() && Sys.getenv("NVIMR_ID") != "") {
@@ -116,7 +122,7 @@ if (interactive() && Sys.getenv("NVIMR_ID") != "") {
   )
 }
 REOF
-echo "  Appended colorout loader to ~/.Rprofile"
+echo "  Appended nvimcom and colorout settings to ~/.Rprofile"
 else
   echo "  ~/.Rprofile already updated, skipping."
 fi
