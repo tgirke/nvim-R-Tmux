@@ -102,9 +102,11 @@ vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#5c6a7a", bold = false })
 -- Uses treesitter to fold along code structure (function bodies,
 -- chunk argument blocks in Rmd/Quarto, etc.)
 -- foldlevel=99 means all folds start open — close manually as needed
--- Reference: https://github.com/nvim-treesitter/nvim-treesitter#folding
+-- Reference: https://neovim.io/doc/user/fold.html
+-- Note: v:lua.vim.treesitter.foldexpr() is the correct Lua API form
+-- (replaces the deprecated nvim_treesitter#foldexpr() Vimscript call)
 vim.opt.foldmethod = "expr"
-vim.opt.foldexpr   = "nvim_treesitter#foldexpr()"
+vim.opt.foldexpr   = "v:lua.vim.treesitter.foldexpr()"
 vim.opt.foldlevel  = 99
 
 -- ----------------------------------------------------------
@@ -226,6 +228,16 @@ require("lazy").setup({
         min_editor_width = 72,
         rconsole_width   = 78,
         auto_quit        = true,
+
+        -- Limit completion database to base R packages only.
+        -- This prevents R.nvim from spawning multiple bo_code.R background
+        -- processes to index all installed packages at startup — which is
+        -- the main cause of excessive R processes visible in htop on shared
+        -- HPC login nodes. Users still get completions for any package after
+        -- loading it in R with library(). To index all installed packages
+        -- instead (not recommended on HPC), comment out this line.
+        start_libs = "base,stats,graphics,grDevices,utils,datasets,methods",
+
         -- Data frame viewer (\rv) — uses VisiData if installed
         -- VisiData (vd) is a terminal-based viewer with paging, sorting,
         -- filtering and search. Works over SSH, handles large data frames.
@@ -242,13 +254,7 @@ require("lazy").setup({
           save_fun = "",
         },
 
-        -- HPC completion database: built automatically by rnvimserver on \rf
-        -- and cached in ~/.cache/R.vim/. If startup hangs on the login node,
-        -- the most likely cause is insufficient CPU/RAM limits (minimum: 1 CPU,
-        -- 1GB RAM). Ask your sysadmin to increase limits if needed.
-        -- Fallback: add options(nvimcom.pkg.desc = FALSE) to ~/.Rprofile.
         objbr_auto_start = false,
-        -- start_libs = "base,stats,graphics,grDevices,utils,datasets,methods",
         hook = {
           on_filetype = function()
             -- Enter sends line (normal) or selection (visual) to R
@@ -380,6 +386,9 @@ require("lazy").setup({
       })
     end,
   },
+
+  -- ---------------------------------------------------------
+  -- indent-blankline.nvim
   -- Vertical indentation guide lines.
   -- Toggle: Space-i  (or :IBLToggle)
   --
