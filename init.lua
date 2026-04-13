@@ -223,19 +223,30 @@ require("lazy").setup({
   --   count for its completion database builder, ignoring all R options and
   --   environment variables. On SLURM nodes with --cpus-per-task > 2 this
   --   causes 20+ bo_code.R processes per session. The build hook below
-  --   deploys a patched bol.R (stored in ~/.config/nvim/bol.R) that caps
-  --   num_cores at 1L. The patch is reapplied automatically on :Lazy update.
+  --   deploys a patched bol.R (stored in ~/.config/nvim/bol.R by the
+  --   installer) that caps num_cores at 1L.
+  --
+  --   The hook first resets bol.R to its upstream state via git checkout
+  --   so that lazy.nvim can complete git pulls without being blocked by
+  --   local modifications, then immediately overwrites it with the patch.
+  --   This runs automatically on every :Lazy sync / :Lazy update.
   -- ---------------------------------------------------------
   {
     "R-nvim/R.nvim",
     lazy         = false,
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     build = function()
-      local src  = vim.fn.expand("~/.config/nvim/bol.R")
-      local dst  = vim.fn.stdpath("data")
-        .. "/lazy/R.nvim/nvimcom/R/bol.R"
-      if vim.fn.filereadable(src) == 1 then
-        local ok = vim.fn.system("cp " .. src .. " " .. dst)
+      local plugin_dir = vim.fn.stdpath("data") .. "/lazy/R.nvim"
+      local bol_dst    = plugin_dir .. "/nvimcom/R/bol.R"
+      local bol_src    = vim.fn.expand("~/.config/nvim/bol.R")
+
+      -- Reset bol.R to upstream state so lazy.nvim git pull is not
+      -- blocked by our local modification on the next :Lazy update.
+      vim.fn.system("git -C " .. plugin_dir .. " checkout -- nvimcom/R/bol.R")
+
+      -- Overwrite with our patched version that caps workers at 1L.
+      if vim.fn.filereadable(bol_src) == 1 then
+        vim.fn.system("cp " .. bol_src .. " " .. bol_dst)
         if vim.v.shell_error == 0 then
           vim.notify(
             "R.nvim: deployed patched bol.R (bo_code.R workers capped at 1)",
@@ -243,7 +254,7 @@ require("lazy").setup({
           )
         else
           vim.notify(
-            "R.nvim: WARNING — failed to deploy patched bol.R: " .. ok,
+            "R.nvim: WARNING — failed to deploy patched bol.R",
             vim.log.levels.WARN
           )
         end
