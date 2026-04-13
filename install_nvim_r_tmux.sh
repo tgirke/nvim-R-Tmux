@@ -25,9 +25,7 @@
 #
 # To undo: the script prints rollback commands at the end.
 # =============================================================================
-
 set -euo pipefail
-
 # On HPC clusters, initialize the module system if needed and load tools.
 # We source the bash-specific init directly to avoid shell detection issues
 # in non-interactive subshells. The 2>/dev/null suppresses known bugs in
@@ -37,21 +35,17 @@ if [ -f /usr/share/Modules/init/bash ] && ! command -v module &>/dev/null; then
   source /usr/share/Modules/init/bash 2>/dev/null
 fi
 set -e
-
 # Load required modules if available and not already in PATH
 if command -v module &>/dev/null; then
   command -v nvim &>/dev/null || module load neovim/0.11.4 2>/dev/null || module load neovim 2>/dev/null || true
   command -v tmux &>/dev/null || module load tmux 2>/dev/null || true
   command -v R    &>/dev/null || module load R    2>/dev/null || true
 fi
-
 BACKUP_SUFFIX=".bak_$(date +%Y%m%d_%H%M%S)"
-
 echo "============================================================"
 echo "  Nvim-R-Tmux Installer"
 echo "============================================================"
 echo ""
-
 # ---------- helpers ----------------------------------------------------------
 backup_if_exists() {
     if [ -e "$1" ]; then
@@ -59,7 +53,6 @@ backup_if_exists() {
         echo "  Backed up: $1  →  ${1}${BACKUP_SUFFIX}"
     fi
 }
-
 require_cmd() {
     if ! command -v "$1" &>/dev/null; then
         echo "ERROR: '$1' not found."
@@ -70,26 +63,22 @@ require_cmd() {
         exit 1
     fi
 }
-
 # ---------- pre-flight -------------------------------------------------------
 echo "--- Checking prerequisites ---"
 require_cmd nvim
 require_cmd tmux
 require_cmd git
-
 echo "  neovim : $(nvim --version | head -1)"
 echo "  tmux   : $(tmux -V)"
 echo "  git    : $(git --version)"
 echo ""
-
 # ---------- backup existing configs ------------------------------------------
 echo "--- Backing up existing configs ---"
 backup_if_exists "$HOME/.config/nvim"
 backup_if_exists "$HOME/.tmux.conf"
 backup_if_exists "$HOME/.Rprofile"
-backup_if_exists "$HOME/.bash_profile"
+backup_if_exists "$HOME/.bashrc"
 echo ""
-
 # ---------- clip script (OSC 52 clipboard) -----------------------------------
 echo "--- Installing clip script (~/.local/bin/clip) ---"
 mkdir -p "$HOME/.local/bin"
@@ -97,31 +86,27 @@ cp "$(dirname "$0")/clip" "$HOME/.local/bin/clip"
 chmod +x "$HOME/.local/bin/clip"
 echo "  Done."
 echo ""
-
 # ---------- tmux config ------------------------------------------------------
 echo "--- Installing tmux config (~/.tmux.conf) ---"
 cp "$(dirname "$0")/.tmux.conf" "$HOME/.tmux.conf"
 echo "  Done."
 echo ""
-
 # ---------- nvim config ------------------------------------------------------
 echo "--- Installing Neovim config (~/.config/nvim/init.lua) ---"
 mkdir -p "$HOME/.config/nvim"
 cp "$(dirname "$0")/init.lua" "$HOME/.config/nvim/init.lua"
 echo "  Done."
 echo ""
-
 # ---------- hlterm bash fix --------------------------------------------------
 echo "--- Installing hlterm bash override (~/.config/nvim/after/ftplugin/) ---"
 mkdir -p "$HOME/.config/nvim/after/ftplugin"
 cp "$(dirname "$0")/sh_hlterm.lua" "$HOME/.config/nvim/after/ftplugin/sh_hlterm.lua"
 echo "  Done."
 echo ""
-
+# ---------- Rprofile ---------------------------------------------------------
 echo "--- Updating ~/.Rprofile ---"
 if ! grep -q "colorout" "$HOME/.Rprofile" 2>/dev/null; then
 cat >> "$HOME/.Rprofile" << 'REOF'
-
 # Load colorout for colored R output in nvim terminal (if installed)
 # https://github.com/jalvesaq/colorout
 if (interactive() && Sys.getenv("NVIMR_ID") != "") {
@@ -136,13 +121,10 @@ else
   echo "  ~/.Rprofile already updated, skipping."
 fi
 echo ""
-
 # ---------- bashrc -----------------------------------------------------------
 echo "--- Updating ~/.bashrc ---"
-backup_if_exists "$HOME/.bashrc"
 if ! grep -q "nvim_r_tmux_env" "$HOME/.bashrc" 2>/dev/null; then
 cat >> "$HOME/.bashrc" << 'BASHEOF'
-
 # --- nvim_r_tmux_env ---
 # Load HPC modules if module command is available
 if command -v module &>/dev/null; then
@@ -158,21 +140,29 @@ else
   echo "  ~/.bashrc already updated, skipping."
 fi
 echo ""
+# ---------- bash_profile -----------------------------------------------------
+# Ensure ~/.bash_profile sources ~/.bashrc for login shells.
+# On HPCC, many accounts already have a ~/.bash_profile that does NOT source
+# ~/.bashrc, which means the module load and PATH changes above are silently
+# skipped at login — causing the system's old Neovim to be used instead of
+# the one loaded by the module system.
+# We check for an existing source line and append one if missing, regardless
+# of whether the file already exists.
+echo "--- Checking ~/.bash_profile sources ~/.bashrc ---"
+if ! grep -qE '\.\s+~/\.bashrc|source\s+~/\.bashrc' "$HOME/.bash_profile" 2>/dev/null; then
+  backup_if_exists "$HOME/.bash_profile"
+  cat >> "$HOME/.bash_profile" << 'PROFEOF'
 
-# Create ~/.bash_profile if missing — ensures ~/.bashrc is sourced on login
-# New HPC accounts often have neither file, causing module command not found
-if [ ! -f "$HOME/.bash_profile" ]; then
-  echo "--- Creating ~/.bash_profile ---"
-  cat > "$HOME/.bash_profile" << 'PROFEOF'
-# Source ~/.bashrc for login shells (created by nvim-R-Tmux installer)
+# Source ~/.bashrc for login shells (added by nvim-R-Tmux installer)
 if [ -f ~/.bashrc ]; then
     source ~/.bashrc
 fi
 PROFEOF
-  echo "  Done."
-  echo ""
+  echo "  Appended bashrc sourcing to ~/.bash_profile"
+else
+  echo "  ~/.bash_profile already sources ~/.bashrc, skipping."
 fi
-
+echo ""
 # ---------- visidata ---------------------------------------------------------
 # Must run after bashrc update — export PATH first so vd check works
 export PATH="$HOME/.local/bin:$PATH"
@@ -202,7 +192,6 @@ else
   echo "  Or on Mac: brew install visidata"
 fi
 echo ""
-
 # ---------- done -------------------------------------------------------------
 echo "============================================================"
 echo "  Installation complete!"
