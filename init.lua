@@ -233,9 +233,10 @@ require("lazy").setup({
         -- This prevents R.nvim from spawning multiple bo_code.R background
         -- processes to index all installed packages at startup — which is
         -- the main cause of excessive R processes visible in htop on shared
-        -- HPC login nodes. Users still get completions for any package after
-        -- loading it in R with library(). To index all installed packages
-        -- instead (not recommended on HPC), comment out this line.
+        -- HPC login nodes and compute nodes. Users still get completions for
+        -- any package after loading it in R with library(). To index all
+        -- installed packages instead (not recommended on HPC), comment out
+        -- this line.
         start_libs = "base,stats,graphics,grDevices,utils,datasets,methods",
 
         -- Data frame viewer (\rv) — uses VisiData if installed
@@ -516,6 +517,27 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
     vim.opt_local.wrap    = false
   end,
   desc = "Align columns in R data frame viewer",
+})
+
+-- Kill orphaned bo_code.R processes on nvim exit.
+--
+-- rnvimserver (the R.nvim background daemon) does not reliably terminate
+-- its bo_code.R child processes when a nvim session closes, leaving orphaned
+-- R processes running on the node. This affects both login nodes (2-4
+-- processes per session) and compute nodes (10-30 processes per session),
+-- and is a known upstream issue with R.nvim/rnvimserver cleanup.
+--
+-- This autocmd sends SIGTERM to any bo_code.R processes owned by this user
+-- when nvim exits. It is safe to use with multiple concurrent nvim sessions:
+-- any bo_code.R process still alive at nvim exit is by definition orphaned
+-- (rnvimserver exits before nvim does), so killing all of them for this user
+-- is the correct behavior. On SLURM compute nodes the job scheduler will
+-- also reap processes on job end, but this ensures immediate cleanup.
+vim.api.nvim_create_autocmd("VimLeave", {
+  callback = function()
+    vim.fn.system("pkill -u " .. vim.fn.expand("$USER") .. " -f bo_code.R")
+  end,
+  desc = "Kill orphaned bo_code.R processes on nvim exit",
 })
 
 
