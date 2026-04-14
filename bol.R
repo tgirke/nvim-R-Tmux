@@ -628,15 +628,26 @@ nvim.build.cmplls <- function() {
 
     instp <- installed.packages()
 
-    # HPC patch: limit indexing to base R packages only.
+    # HPC patch: limit indexing to currently loaded packages only.
     # installed.packages() returns all system packages (hundreds on HPC),
-    # causing nvim.build.cmplls() to spawn 20+ bo_code.R workers to rebuild
-    # cache entries whenever package versions change. Filtering to base
-    # packages here means only 7 packages are ever indexed, regardless of
-    # how many packages are installed system-wide.
-    base_pkgs <- c("base", "stats", "graphics", "grDevices",
-                   "utils", "datasets", "methods")
-    instp <- instp[instp[, "Package"] %in% base_pkgs, , drop = FALSE]
+    # causing 20+ bo_code.R workers on SLURM compute nodes. Instead we
+    # read the libnames file which R.nvim updates dynamically as the user
+    # calls library() — so completions are built on demand for each loaded
+    # package, not for all installed ones. Falls back to base packages if
+    # the libnames file is not found.
+    tmpdir  <- Sys.getenv("RNVIM_TMPDIR")
+    id      <- Sys.getenv("RNVIM_ID")
+    libfile <- file.path(tmpdir, paste0("libnames_", id))
+    if (file.exists(libfile)) {
+        content     <- readLines(libfile, warn = FALSE)[1]
+        content     <- gsub("#.*$", "", content)
+        loaded_libs <- strsplit(content, ",")[[1]]
+        loaded_libs <- loaded_libs[nzchar(trimws(loaded_libs))]
+    } else {
+        loaded_libs <- c("base", "stats", "graphics",
+                         "grDevices", "utils", "datasets", "methods")
+    }
+    instp <- instp[instp[, "Package"] %in% loaded_libs, , drop = FALSE]
 
     ip_all <- data.frame(
         pkg = instp[, "Package"],
