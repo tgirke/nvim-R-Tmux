@@ -11,6 +11,7 @@
 #   - Patched bol.R to cap bo_code.R workers at 1 on HPC nodes
 #   - Shell convenience aliases in .bashrc
 #   - All plugins installed via headless :Lazy sync (no manual nvim needed)
+#   - R.nvim completion cache pruned to base packages only
 #
 # Assumptions:
 #   - Neovim >= 0.10 is available (via module load or in PATH)
@@ -101,10 +102,11 @@ cp "$(dirname "$0")/init.lua" "$HOME/.config/nvim/init.lua"
 echo "  Done."
 echo ""
 # ---------- patched bol.R ----------------------------------------------------
-# nvimcom's bol.R hardcodes parallel::detectCores() - 2 as the worker count
-# for its completion database builder, ignoring all R options and environment
-# variables. On SLURM nodes with --cpus-per-task > 2 this causes 20+ bo_code.R
-# processes per session. The patched bol.R in this repo caps num_cores at 1L.
+# nvimcom's bol.R has two HPC-specific problems fixed by our patched version:
+#   1. installed.packages() indexes all system packages (hundreds on HPC),
+#      causing 20+ bo_code.R workers. Patched to filter to base packages only.
+#   2. parallel::detectCores() - 2 scales workers with SLURM --cpus-per-task.
+#      Patched to hardcode num_cores <- 1L.
 #
 # Installed to ~/.config/nvim/bol.R so the build hook in init.lua can deploy
 # it into the lazy plugin directory after each :Lazy sync / :Lazy update,
@@ -120,7 +122,6 @@ cp "$(dirname "$0")/sh_hlterm.lua" "$HOME/.config/nvim/after/ftplugin/sh_hlterm.
 echo "  Done."
 echo ""
 # ---------- Rprofile ---------------------------------------------------------
-# Guards against re-running: checks for nvim_r_tmux_env marker.
 echo "--- Updating ~/.Rprofile ---"
 if ! grep -q "nvim_r_tmux_env" "$HOME/.Rprofile" 2>/dev/null; then
 cat >> "$HOME/.Rprofile" << 'REOF'
@@ -164,11 +165,6 @@ else
 fi
 echo ""
 # ---------- bash_profile -----------------------------------------------------
-# Ensure ~/.bash_profile sources ~/.bashrc for login shells.
-# On HPCC, many accounts already have a ~/.bash_profile that does NOT source
-# ~/.bashrc, which means the module load and PATH changes above are silently
-# skipped at login — causing the system's old Neovim to be used instead of
-# the one loaded by the module system.
 echo "--- Checking ~/.bash_profile sources ~/.bashrc ---"
 if ! grep -qE '\.\s+~/\.bashrc|source\s+~/\.bashrc' "$HOME/.bash_profile" 2>/dev/null; then
   backup_if_exists "$HOME/.bash_profile"
@@ -185,7 +181,6 @@ else
 fi
 echo ""
 # ---------- visidata ---------------------------------------------------------
-# Must run after bashrc update — export PATH first so vd check works
 export PATH="$HOME/.local/bin:$PATH"
 echo "--- Installing VisiData (~/.local/bin/vd) ---"
 if command -v vd &>/dev/null; then
@@ -215,12 +210,39 @@ echo ""
 # Runs :Lazy sync without opening nvim, installing all plugins and triggering
 # the build hook in init.lua which:
 #   - Deploys the patched bol.R into the R.nvim plugin directory
-#   - Adds bol.R to .git/info/exclude so future :Lazy updates are not blocked
+#   - Marks bol.R as assume-unchanged so future :Lazy updates are not blocked
 # Requires internet access. Takes 1-3 minutes on first run.
 echo "--- Installing Neovim plugins (headless :Lazy sync) ---"
 echo "  This may take 1-3 minutes on first run..."
 nvim --headless "+Lazy! sync" +qa 2>&1
 echo "  Done."
+echo ""
+# ---------- R.nvim cache cleanup ---------------------------------------------
+# Remove cached completion entries for all non-base R packages.
+# The patched bol.R limits indexing to base packages only, but any cache
+# entries that were built before this install (or by a previous unpatched
+# session) would still trigger rebuild attempts on version changes.
+# Pruning to base packages here ensures a clean starting state.
+echo "--- Pruning R.nvim completion cache to base packages ---"
+CACHE_DIR="$HOME/.cache/R.nvim"
+if [ -d "$CACHE_DIR" ]; then
+  removed=0
+  for f in "$CACHE_DIR"/objls_* "$CACHE_DIR"/alias_* \
+            "$CACHE_DIR"/args_*  "$CACHE_DIR"/srcref_*; do
+    [ -e "$f" ] || continue
+    # Extract package name: strip prefix (up to first _) and suffix
+    # (from last _ onward for objls_, or nothing for alias_/args_/srcref_)
+    fname=$(basename "$f")
+    pkg=$(echo "$fname" | sed 's/^[^_]*_//; s/_[^_]*$//')
+    case "$pkg" in
+      base|stats|graphics|grDevices|utils|datasets|methods) ;;
+      *) rm -f "$f"; removed=$((removed + 1)) ;;
+    esac
+  done
+  echo "  Removed $removed non-base cache entries."
+else
+  echo "  Cache directory not found, skipping."
+fi
 echo ""
 # ---------- done -------------------------------------------------------------
 echo "============================================================"
