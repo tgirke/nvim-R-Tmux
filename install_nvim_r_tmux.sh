@@ -11,6 +11,7 @@
 #   - Patched bol.R to cap bo_code.R workers at 1 on HPC nodes
 #   - Shell convenience aliases in .bashrc
 #   - All plugins installed via headless :Lazy sync (no manual nvim needed)
+#   - nvimcom reinstalled from patched source so compiled bytecode is patched
 #   - R.nvim completion cache pruned to base packages only
 #
 # Assumptions:
@@ -108,9 +109,9 @@ echo ""
 #   2. parallel::detectCores() - 2 scales workers with SLURM --cpus-per-task.
 #      Patched to hardcode num_cores <- 1L.
 #
-# Installed to ~/.config/nvim/bol.R so the build hook in init.lua can deploy
-# it into the lazy plugin directory after each :Lazy sync / :Lazy update,
-# ensuring the patch survives plugin updates automatically.
+# Installed to ~/.config/nvim/bol.R as the canonical source for:
+#   - The nvimcom reinstall step below (bakes patch into compiled bytecode)
+#   - The build hook in init.lua (redeploys after :Lazy update)
 echo "--- Installing patched bol.R (~/.config/nvim/bol.R) ---"
 cp "$(dirname "$0")/bol.R" "$HOME/.config/nvim/bol.R"
 echo "  Done."
@@ -217,12 +218,65 @@ echo "  This may take 1-3 minutes on first run..."
 nvim --headless "+Lazy! sync" +qa 2>&1
 echo "  Done."
 echo ""
+# ---------- reinstall nvimcom from patched source ----------------------------
+# nvimcom is installed as a compiled R package (bytecode in .rdb) in the
+# user's ~/R/ library. Patching the source bol.R in the lazy plugin directory
+# has no effect on the compiled package — library('nvimcom') always loads
+# the bytecode from ~/R/, ignoring the source tree entirely.
+#
+# The fix is to reinstall nvimcom from our patched source so the compiled
+# bytecode contains the patched nvim.build.cmplls() function. This step:
+#   1. Copies our patched bol.R into the nvimcom source tree in the lazy dir
+#   2. Installs nvimcom from that source into the user's R library
+#   3. Verifies the install succeeded
+#
+# This must run AFTER the headless lazy sync so the nvimcom source tree
+# exists at ~/.local/share/nvim/lazy/R.nvim/nvimcom/.
+echo "--- Reinstalling nvimcom from patched source ---"
+NVIMCOM_SRC="$HOME/.local/share/nvim/lazy/R.nvim/nvimcom"
+NVIMCOM_BOL="$NVIMCOM_SRC/R/bol.R"
+if [ -d "$NVIMCOM_SRC" ]; then
+  # Deploy patched bol.R into the source tree
+  cp "$HOME/.config/nvim/bol.R" "$NVIMCOM_BOL"
+  echo "  Patched bol.R deployed to nvimcom source tree."
+  # Install nvimcom from patched source into user R library
+  # R_LIBS_USER ensures it installs to ~/R/ and not a system path
+  Rscript --vanilla -e "
+    lib <- Sys.getenv('R_LIBS_USER', unset = path.expand('~/R'))
+    lib <- strsplit(lib, .Platform\$path.sep)[[1]][1]
+    if (!dir.exists(lib)) dir.create(lib, recursive = TRUE)
+    cat('  Installing to:', lib, '\n')
+    install.packages(
+      '$NVIMCOM_SRC',
+      lib       = lib,
+      repos     = NULL,
+      type      = 'source',
+      quiet     = FALSE,
+      INSTALL_opts = '--no-multiarch'
+    )
+  " 2>&1
+  # Verify the patched function is in the installed package
+  RESULT=$(Rscript --vanilla -e "
+    library('nvimcom', quietly = TRUE)
+    fn <- deparse(body(nvimcom:::nvim.build.cmplls))
+    if (any(grepl('base_pkgs', fn))) {
+      cat('OK: patched nvim.build.cmplls detected\n')
+    } else {
+      cat('WARNING: patch not detected in installed nvimcom\n')
+    }
+  " 2>&1)
+  echo "  $RESULT"
+else
+  echo "  WARNING: nvimcom source not found at $NVIMCOM_SRC"
+  echo "           Headless lazy sync may have failed. Run manually:"
+  echo "           nvim --headless '+Lazy! sync' +qa"
+fi
+echo ""
 # ---------- R.nvim cache cleanup ---------------------------------------------
 # Remove cached completion entries for all non-base R packages.
-# The patched bol.R limits indexing to base packages only, but any cache
-# entries that were built before this install (or by a previous unpatched
-# session) would still trigger rebuild attempts on version changes.
-# Pruning to base packages here ensures a clean starting state.
+# The patched nvimcom limits indexing to base packages only, but any cache
+# entries built before this install would still trigger rebuild attempts.
+# Pruning to base packages ensures a clean starting state.
 echo "--- Pruning R.nvim completion cache to base packages ---"
 CACHE_DIR="$HOME/.cache/R.nvim"
 if [ -d "$CACHE_DIR" ]; then
@@ -230,8 +284,6 @@ if [ -d "$CACHE_DIR" ]; then
   for f in "$CACHE_DIR"/objls_* "$CACHE_DIR"/alias_* \
             "$CACHE_DIR"/args_*  "$CACHE_DIR"/srcref_*; do
     [ -e "$f" ] || continue
-    # Extract package name: strip prefix (up to first _) and suffix
-    # (from last _ onward for objls_, or nothing for alias_/args_/srcref_)
     fname=$(basename "$f")
     pkg=$(echo "$fname" | sed 's/^[^_]*_//; s/_[^_]*$//')
     case "$pkg" in
@@ -278,4 +330,6 @@ for f in "$HOME/.config/nvim" "$HOME/.tmux.conf" "$HOME/.Rprofile" "$HOME/.bashr
         echo "    rm -rf \"$f\" && mv \"$bak\" \"$f\""
     fi
 done
+echo "  To reinstall nvimcom from upstream (unpatched):"
+echo "    Rscript -e \"install.packages('nvimcom', repos=NULL, type='source')\""
 echo "------------------------------------------------------------"
