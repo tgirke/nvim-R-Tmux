@@ -628,6 +628,16 @@ nvim.build.cmplls <- function() {
 
     instp <- installed.packages()
 
+    # HPC patch: limit indexing to base R packages only.
+    # installed.packages() returns all system packages (hundreds on HPC),
+    # causing nvim.build.cmplls() to spawn 20+ bo_code.R workers to rebuild
+    # cache entries whenever package versions change. Filtering to base
+    # packages here means only 7 packages are ever indexed, regardless of
+    # how many packages are installed system-wide.
+    base_pkgs <- c("base", "stats", "graphics", "grDevices",
+                   "utils", "datasets", "methods")
+    instp <- instp[instp[, "Package"] %in% base_pkgs, , drop = FALSE]
+
     ip_all <- data.frame(
         pkg = instp[, "Package"],
         ivrs = instp[, "Version"],
