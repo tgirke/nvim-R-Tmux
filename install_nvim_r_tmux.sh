@@ -10,19 +10,21 @@
 #   - OSC 52 clip script for clipboard over SSH
 #   - Patched bol.R to cap bo_code.R workers at 1 on HPC nodes
 #   - Shell convenience aliases in .bashrc
+#   - All plugins installed via headless :Lazy sync (no manual nvim needed)
 #
 # Assumptions:
 #   - Neovim >= 0.10 is available (via module load or in PATH)
 #   - Tmux >= 3.4 is available
 #   - R is available
 #   - git is available
+#   - Internet access is available (for plugin downloads)
 #
 # Authors / maintainers:
 #   Thomas Girke (tgirke@ucr.edu)
 #   https://github.com/tgirke/Nvim-R_Tmux
 #
 # Usage:
-#   bash install_nvim_r_tmux.sh
+#   module load neovim/0.11.4 tmux R && bash install_nvim_r_tmux.sh
 #
 # To undo: the script prints rollback commands at the end.
 # =============================================================================
@@ -104,9 +106,9 @@ echo ""
 # variables. On SLURM nodes with --cpus-per-task > 2 this causes 20+ bo_code.R
 # processes per session. The patched bol.R in this repo caps num_cores at 1L.
 #
-# This file is installed to ~/.config/nvim/bol.R so that the build hook in
-# init.lua can copy it into the lazy.nvim plugin directory after each
-# :Lazy sync / :Lazy update, ensuring the patch survives plugin updates.
+# Installed to ~/.config/nvim/bol.R so the build hook in init.lua can deploy
+# it into the lazy plugin directory after each :Lazy sync / :Lazy update,
+# ensuring the patch survives plugin updates automatically.
 echo "--- Installing patched bol.R (~/.config/nvim/bol.R) ---"
 cp "$(dirname "$0")/bol.R" "$HOME/.config/nvim/bol.R"
 echo "  Done."
@@ -167,8 +169,6 @@ echo ""
 # ~/.bashrc, which means the module load and PATH changes above are silently
 # skipped at login — causing the system's old Neovim to be used instead of
 # the one loaded by the module system.
-# We check for an existing source line and append one if missing, regardless
-# of whether the file already exists.
 echo "--- Checking ~/.bash_profile sources ~/.bashrc ---"
 if ! grep -qE '\.\s+~/\.bashrc|source\s+~/\.bashrc' "$HOME/.bash_profile" 2>/dev/null; then
   backup_if_exists "$HOME/.bash_profile"
@@ -196,13 +196,11 @@ elif command -v pip3 &>/dev/null || command -v pip &>/dev/null; then
   if ! $PIP install --user visidata 2>/dev/null; then
     $PIP install --user visidata --break-system-packages
   fi
-  # Check common install locations explicitly
   if command -v vd &>/dev/null; then
     echo "  VisiData installed: $(vd --version 2>&1 | head -1)"
   elif [ -f "$HOME/.local/bin/vd" ]; then
     echo "  VisiData installed to ~/.local/bin/vd (active after: source ~/.bashrc)"
   else
-    # pip may install to a different location on some systems (e.g. Mac)
     VD_PATH=$(python3 -c "import site; print(site.getuserbase())" 2>/dev/null)
     echo "  VisiData may be installed under: $VD_PATH/bin/vd"
     echo "  Add to PATH: export PATH=\"$VD_PATH/bin:\$PATH\""
@@ -212,6 +210,17 @@ else
   echo "  Install manually: pip install --user visidata"
   echo "  Or on Mac: brew install visidata"
 fi
+echo ""
+# ---------- lazy sync (headless) ---------------------------------------------
+# Runs :Lazy sync without opening nvim, installing all plugins and triggering
+# the build hook in init.lua which:
+#   - Deploys the patched bol.R into the R.nvim plugin directory
+#   - Adds bol.R to .git/info/exclude so future :Lazy updates are not blocked
+# Requires internet access. Takes 1-3 minutes on first run.
+echo "--- Installing Neovim plugins (headless :Lazy sync) ---"
+echo "  This may take 1-3 minutes on first run..."
+nvim --headless "+Lazy! sync" +qa 2>&1
+echo "  Done."
 echo ""
 # ---------- done -------------------------------------------------------------
 echo "============================================================"
@@ -225,11 +234,8 @@ echo ""
 echo "  2. Start a tmux session:"
 echo "       tmux new -s work"
 echo ""
-echo "  3. Open an R file and install plugins (first launch only):"
+echo "  3. Open an R file:"
 echo "       nvim myscript.R"
-echo "       # lazy.nvim installs plugins automatically"
-echo "       # then: :Lazy sync"
-echo "       # the build hook in init.lua deploys the patched bol.R"
 echo ""
 echo "  4. Start R with:  \\rf"
 echo "     Send lines with: Enter"
