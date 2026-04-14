@@ -222,13 +222,17 @@ require("lazy").setup({
   --   nvimcom's bol.R hardcodes parallel::detectCores() - 2 as the worker
   --   count for its completion database builder, ignoring all R options and
   --   environment variables. On SLURM nodes with --cpus-per-task > 2 this
-  --   causes 20+ bo_code.R processes per session. The build hook below
-  --   deploys a patched bol.R (stored in ~/.config/nvim/bol.R by the
-  --   installer) that caps num_cores at 1L.
+  --   causes 20+ bo_code.R processes per session.
   --
-  --   The hook first resets bol.R to its upstream state via git checkout
-  --   so that lazy.nvim can complete git pulls without being blocked by
-  --   local modifications, then immediately overwrites it with the patch.
+  --   The build hook below:
+  --     1. Copies the patched bol.R from ~/.config/nvim/bol.R (installed
+  --        by the installer) into the plugin directory. The patch replaces
+  --        parallel::detectCores() - 2 with 1L, capping workers at 1.
+  --     2. Runs git update-index --assume-unchanged on bol.R so that
+  --        lazy.nvim's git status check never sees it as a local
+  --        modification blocking future :Lazy sync / :Lazy update calls.
+  --        Unlike .git/info/exclude (which only works for untracked files),
+  --        --assume-unchanged works correctly for tracked files.
   --   This runs automatically on every :Lazy sync / :Lazy update.
   -- ---------------------------------------------------------
   {
@@ -240,27 +244,42 @@ require("lazy").setup({
       local bol_dst    = plugin_dir .. "/nvimcom/R/bol.R"
       local bol_src    = vim.fn.expand("~/.config/nvim/bol.R")
 
-      -- Reset bol.R to upstream state so lazy.nvim git pull is not
-      -- blocked by our local modification on the next :Lazy update.
-      vim.fn.system("git -C " .. plugin_dir .. " checkout -- nvimcom/R/bol.R")
-
-      -- Overwrite with our patched version that caps workers at 1L.
+      -- Deploy the patched bol.R that caps mclapply workers at 1L,
+      -- preventing 20+ bo_code.R processes on SLURM compute nodes.
       if vim.fn.filereadable(bol_src) == 1 then
         vim.fn.system("cp " .. bol_src .. " " .. bol_dst)
-        if vim.v.shell_error == 0 then
-          vim.notify(
-            "R.nvim: deployed patched bol.R (bo_code.R workers capped at 1)",
-            vim.log.levels.INFO
-          )
-        else
+        if vim.v.shell_error ~= 0 then
           vim.notify(
             "R.nvim: WARNING — failed to deploy patched bol.R",
             vim.log.levels.WARN
           )
+          return
         end
       else
         vim.notify(
           "R.nvim: WARNING — ~/.config/nvim/bol.R not found, skipping patch",
+          vim.log.levels.WARN
+        )
+        return
+      end
+
+      -- Mark bol.R as assume-unchanged in git so lazy.nvim's git status
+      -- check never sees our patched version as a local modification.
+      -- Note: .git/info/exclude does NOT work here because bol.R is a
+      -- tracked file — assume-unchanged is the correct mechanism for
+      -- telling git to ignore changes to tracked files.
+      vim.fn.system(
+        "git -C " .. plugin_dir ..
+        " update-index --assume-unchanged nvimcom/R/bol.R"
+      )
+      if vim.v.shell_error == 0 then
+        vim.notify(
+          "R.nvim: deployed patched bol.R (bo_code.R workers capped at 1)",
+          vim.log.levels.INFO
+        )
+      else
+        vim.notify(
+          "R.nvim: WARNING — failed to mark bol.R as assume-unchanged",
           vim.log.levels.WARN
         )
       end
