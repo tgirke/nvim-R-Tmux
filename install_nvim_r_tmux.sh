@@ -11,6 +11,7 @@
 #   - Patched bol.R to cap bo_code.R workers at 1 on HPC nodes
 #   - Shell convenience aliases in .bashrc
 #   - All plugins installed via headless :Lazy sync (no manual nvim needed)
+#   - Treesitter parsers installed synchronously (no error on first open)
 #   - nvimcom reinstalled from patched source so compiled bytecode is patched
 #   - R.nvim completion cache pruned to base packages only
 #
@@ -218,6 +219,20 @@ echo "  This may take 1-3 minutes on first run..."
 nvim --headless "+Lazy! sync" +qa 2>&1
 echo "  Done."
 echo ""
+# ---------- treesitter parsers -----------------------------------------------
+# Install treesitter parsers synchronously so they are ready before nvim is
+# opened for the first time. Without this, opening an R file immediately after
+# install triggers a one-time error:
+#   "Parser could not be created for buffer 1 and language r"
+# because :TSUpdate (triggered by lazy.nvim) runs asynchronously and may not
+# have finished before nvim exits the headless sync above.
+# TSInstallSync blocks until all parsers are fully installed.
+echo "--- Installing treesitter parsers (synchronous) ---"
+nvim --headless \
+  "+TSInstallSync! r rnoweb markdown markdown_inline yaml bash python lua" \
+  +qa 2>&1
+echo "  Done."
+echo ""
 # ---------- reinstall nvimcom from patched source ----------------------------
 # nvimcom is installed as a compiled R package (bytecode in .rdb) in the
 # user's ~/R/ library. Patching the source bol.R in the lazy plugin directory
@@ -239,8 +254,9 @@ if [ -d "$NVIMCOM_SRC" ]; then
   # Deploy patched bol.R into the source tree
   cp "$HOME/.config/nvim/bol.R" "$NVIMCOM_BOL"
   echo "  Patched bol.R deployed to nvimcom source tree."
-  # Install nvimcom from patched source into user R library
-  # R_LIBS_USER ensures it installs to ~/R/ and not a system path
+  # Install nvimcom from patched source into user R library.
+  # --vanilla ensures ~/.Rprofile does not interfere with the install.
+  # repos=NULL with a local path compiles from source without internet.
   Rscript --vanilla -e "
     lib <- Sys.getenv('R_LIBS_USER', unset = path.expand('~/R'))
     lib <- strsplit(lib, .Platform\$path.sep)[[1]][1]
@@ -248,10 +264,10 @@ if [ -d "$NVIMCOM_SRC" ]; then
     cat('  Installing to:', lib, '\n')
     install.packages(
       '$NVIMCOM_SRC',
-      lib       = lib,
-      repos     = NULL,
-      type      = 'source',
-      quiet     = FALSE,
+      lib          = lib,
+      repos        = NULL,
+      type         = 'source',
+      quiet        = FALSE,
       INSTALL_opts = '--no-multiarch'
     )
   " 2>&1
@@ -322,6 +338,14 @@ echo "  6. Optional: install colorout R package for colored output:"
 echo "       Rscript -e 'install.packages(\"remotes\")'"
 echo "       Rscript -e 'remotes::install_github(\"jalvesaq/colorout\")'"
 echo ""
+echo "  NOTE: After running :Lazy update to update plugins, reinstall"
+echo "  the patched nvimcom by re-running the installer or manually:"
+echo "    cp ~/.config/nvim/bol.R \\"
+echo "      ~/.local/share/nvim/lazy/R.nvim/nvimcom/R/bol.R"
+echo "    Rscript --vanilla -e \"install.packages("
+echo "      '~/.local/share/nvim/lazy/R.nvim/nvimcom',"
+echo "      lib=Sys.getenv('R_LIBS_USER'), repos=NULL, type='source')\""
+echo ""
 echo "------------------------------------------------------------"
 echo "  ROLLBACK (if something goes wrong):"
 for f in "$HOME/.config/nvim" "$HOME/.tmux.conf" "$HOME/.Rprofile" "$HOME/.bashrc" "$HOME/.bash_profile"; do
@@ -331,5 +355,5 @@ for f in "$HOME/.config/nvim" "$HOME/.tmux.conf" "$HOME/.Rprofile" "$HOME/.bashr
     fi
 done
 echo "  To reinstall nvimcom from upstream (unpatched):"
-echo "    Rscript -e \"install.packages('nvimcom', repos=NULL, type='source')\""
+echo "    Rscript -e \"remove.packages('nvimcom')\""
 echo "------------------------------------------------------------"
