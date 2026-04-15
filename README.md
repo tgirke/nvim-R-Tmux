@@ -166,7 +166,10 @@ tmux a  # starts a new tmux session with default layout or re-attaches to existi
 The default session opens five named windows that can be changed in a user's `~/.tmux.conf` file. 
 Switch between windows with `Ctrl-a 1` through `Ctrl-a 5`.
 
-**2. Log in to a compute node with `srun`**
+**2. Log in to a compute node with `srun`** 
+
+This step applies only to HPCC's cluster (possibly other clusters too). 
+Skip this step on other systems.
 
 This is done from one of the tmux windows. It does't matter which one. 
 
@@ -174,7 +177,7 @@ This is done from one of the tmux windows. It does't matter which one.
 srun --partition=short --mem=2gb --cpus-per-task 4 --ntasks 1 --time 1:00:00 --pty bash -l
 ```
 
-**2. Open nvim-connected R session**
+**3. Open nvim-connected R session**
 
 Open an `*.R`, `*.Rmd` or `*.qmd` file with `nvim` and initialize a connected R session
 with `\rf`. The resulting split window between Nvim and R behaves like a split
@@ -215,7 +218,7 @@ are now connected — code sent from the editor runs in the R pane.
 | Send selection | `Enter` (visual mode — select with `v` first) |
 | Send entire file | `\aa` |
 | Send current function | `\ff` |
-| Send current chunk (Rmd/Quarto) | `\ce` |
+| Send current chunk (Rmd/Quarto) | `\cd` |
 | Send all chunks above cursor | `\ch` |
 
 **R.nvim commands:**
@@ -225,7 +228,7 @@ are now connected — code sent from the editor runs in the R pane.
 | Start R session | `\rf` |
 | R help for word under cursor | `\rh` |
 | Toggle object browser | `\ro` |
-| View data frame | `\rv` |
+| View data frame in vizidata | `\rv` |
 | Insert `<-` | `Alt -` |
 | Insert `\|>` | `Alt ,` |
 | List all keybindings | `:RMapsDesc` |
@@ -241,38 +244,6 @@ are now connected — code sent from the editor runs in the R pane.
 > Press `q` to quit VisiData and return to your R script.
 > If VisiData is not installed, `\rv` falls back to displaying the data
 > frame in a nvim buffer (limited to ~1200 rows).
-
-> **Note on HPC completion database:**
-> R.nvim provides two levels of completion:
->
-> 1. **Session completion** — functions from packages loaded with `library()`
->    work automatically and immediately. No database build needed.
-> 2. **Full database completion** — all installed packages even if not loaded.
->    Built automatically by `rnvimserver` in the background when R starts.
->
-> The database is stored in `~/.cache/R.vim/` and reused in all future
-> sessions. It only needs rebuilding if R packages are updated.
->
-> **If nvimcom hangs on the login node** during the completion database scan,
-> the most likely cause is insufficient CPU/RAM limits on the login node.
-> Ask your sysadmin to increase the per-user limits. On UCR HPCC the
-> minimum that works is **1 CPU core and 1GB RAM** — the default
-> 0.5 CPU / 0.5GB is insufficient for nvimcom to scan large Bioconductor
-> libraries. Once the limits are increased, startup works normally on
-> both login and compute nodes.
->
-> If increasing limits is not possible, add this to `~/.Rprofile` to skip
-> the slow package description part of the scan:
-> ```r
-> options(nvimcom.pkg.desc = FALSE)
-> ```
->
-> **To force a full database rebuild:**
-> ```bash
-> rm -rf ~/.cache/R.vim/
-> nvim myscript.R
-> \rf    # rnvimserver rebuilds the database automatically
-> ```
 
 **Navigate between editor and R pane:**
 
