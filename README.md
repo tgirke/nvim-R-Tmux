@@ -1,5 +1,6 @@
 # nvim-R-Tmux: Terminal-based IDE for R, Python and Bash
 
+
 A terminal-based development environment for R, Python and Bash built on
 [Neovim](https://neovim.io), [R.nvim](https://github.com/R-nvim/R.nvim),
 [hlterm](https://github.com/jalvesaq/hlterm) and
@@ -245,9 +246,9 @@ are now connected — code sent from the editor runs in the R pane.
 > If VisiData is not installed, `\rv` falls back to displaying the data
 > frame in a nvim buffer (limited to ~1200 rows).
 
-**Navigate between editor and R pane:**
+**Shortcuts to navigate between editor and R pane:**
 
-```
+```bash
 Ctrl-w w        cycle between panes
 Ctrl-h / Ctrl-l jump left / right
 i               enter insert mode (in R pane)
@@ -494,7 +495,7 @@ brew install tmux
 
 ---
 
-### 3. Install R
+### 3. Install R (usually available)
 
 **Reference:** https://cran.r-project.org
 
@@ -660,7 +661,10 @@ remotes::install_github("jalvesaq/colorout")
 
 ---
 
-## Uninstall
+## Manual uninstall
+
+Note, this can be done with a single command using the reset script [here](#quick-install-with-script).
+).
 
 ```bash
 # Neovim config, plugins, cache
