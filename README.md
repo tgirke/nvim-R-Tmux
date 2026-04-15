@@ -105,15 +105,6 @@ bash reset_nvim_r_tmux.sh
 
 Then follow the [Usage](#usage) section below.
 
-> **On HPC clusters:** modules must be loaded in the same shell session
-> before running the install script. Use `&&` to load modules and run
-> the script in the same shell:
-> ```bash
-> module load neovim/0.11.4 tmux R && bash install_nvim_r_tmux.sh
-> ```
-> If `nvim` is still not found after this, check that the modules loaded
-> correctly with `module list` and `which nvim`.
-
 ### Prerequisites
 
 | Tool | Minimum version | Check |
