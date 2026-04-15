@@ -151,46 +151,58 @@ installation instructions for each of these.
 > panes** but not for selecting and copying text. Keep it on for
 > navigation, use the keyboard for copy/paste.
 
-### Starting a session
+**1. Start tmux session**
 
-Start a new Tmux session with the default five-window layout:
+Running Nvim from within a tmux session is strongly recommended for remote
+work on HPCC — it allows re-attaching to sessions after disconnects. When
+using tmux it is important to remember on which head node it was started (on
+HPCC: `skylark` or `bluejay`), since it can only be restarted from the same
+head node.
 
 ```bash
-tmux
+tmux a  # starts a new tmux session with default layout or re-attaches to existing session
 ```
 
-This creates a session named `work` with five named windows:
-
-| Window | Name | Purpose |
-|---|---|---|
-| 1 | main | default landing window |
-| 2 | editor | open nvim here |
-| 3 | shell | file management, job submission |
-| 4 | monitor | squeue, top, log watching |
-| 5 | extra | spare |
-
+The default session opens five named windows that can be changed in a user's `~/.tmux.conf` file. 
 Switch between windows with `Ctrl-a 1` through `Ctrl-a 5`.
 
-To reattach after disconnecting from SSH:
+**2. Log in to a compute node with `srun`**
+
+This is done from one of the tmux windows. It does't matter which one. 
+
 ```bash
-tmux a
+srun --partition=short --mem=2gb --cpus-per-task 4 --ntasks 1 --time 1:00:00 --pty bash -l
 ```
 
-Your session and all open windows are exactly as you left them.
+**2. Open nvim-connected R session**
+
+Open an `*.R`, `*.Rmd` or `*.qmd` file with `nvim` and initialize a connected R session
+with `\rf`. The resulting split window between Nvim and R behaves like a split
+viewport in nvim, meaning `Ctrl-w w` followed by `i` and `Esc` is important
+for navigation between panes. The same can be achieved with mouse clicks if 
+mouse support is enabled. 
+
+```bash
+nvim myscript.R # open an R script (or *.Rmd / *.qmd file)
+```
+
+Then inside nvim press `\rf` to start the connected R session. The first time 
+an R script is opened it is best to do this on a compute node (log in with `srun`)
+since it will create the omni completion database which can take some time on a compute
+system with hundreds of installed packages (over 1,500 on HPCC cluster). Also, if there any messages
+appearing during the first session, just confirm them with `Enter`.
+
+**3. Send R code from nvim to the R pane**
+
+Single lines of code can be sent from nvim to the R console by pressing
+`Enter` in normal mode. Entire code chunks from `Rmd` and `qmd` can be sent with 
+`\cc`. To send a custom selection of several lines at once, select them in nvim's
+visual mode (press `v` to start selection) and then press `Enter`. The default
+keybinding for sending code in R.nvim is `\l` — this has been remapped in the
+provided `init.lua` to `Enter` for consistency with other editors.
 
 ---
 
-### R files
-
-Open an R script:
-```bash
-nvim myscript.R
-```
-
-Start a connected R session:
-```
-\rf
-```
 
 This opens R in a split pane to the right. The editor and R console
 are now connected — code sent from the editor runs in the R pane.
