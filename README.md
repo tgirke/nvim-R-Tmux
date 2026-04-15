@@ -86,7 +86,7 @@ cd nvim-R-Tmux
 
 # On HPCC cluster run the install script with this command
 module load neovim/0.11.4 tmux R && bash install_nvim_r_tmux.sh
-# bash install_nvim_r_tmux.sh # when installing on a local computer, omit the previous module load line and run this command instead 
+# On a local computer, omit the previous module load line and run this command instead 
 bash install_nvim_r_tmux.sh
 ```
 
