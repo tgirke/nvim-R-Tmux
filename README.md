@@ -73,29 +73,35 @@ Windows (MobaXterm/WSL) systems.
 
 The install script configures everything in one step. It assumes Neovim
 >= 0.10, Tmux >= 3.4, R, and git are already available on your system
-(via `module load` on HPC or system install on personal systems).
+(via `module load` on HPC or system install on personal systems). 
+The below install instructions are very similar for personal computer
+(e.g. macOS, Linux and ChromeOS) and user accounts on a HPC systems
+similar to UCR's HPCC cluster. Differences are indicated accordingly
+and additional OS-specific details are given in the [step-wise install](#step-wise-install).
 
 ```bash
 # Clone this repository
 git clone https://github.com/tgirke/nvim-R-Tmux.git
 cd nvim-R-Tmux
 
-# Run the install script
+# On HPCC cluster run the install script with this command
+module load neovim/0.11.4 tmux R && bash install_nvim_r_tmux.sh
+# bash install_nvim_r_tmux.sh # when installing on a local computer, omit the previous module load line and run this command instead 
 bash install_nvim_r_tmux.sh
 ```
 
-The script:
-- Backs up any existing `~/.config/nvim`, `~/.tmux.conf`, `~/.Rprofile`
-  and `~/.bashrc` with a timestamp suffix before making any changes
-- Writes `~/.config/nvim/init.lua` with all plugins configured
-- Writes `~/.config/nvim/after/ftplugin/sh_hlterm.lua` to fix the bash
-  prompt when using `\s` in shell scripts
-- Writes `~/.tmux.conf` with sane defaults and a default session layout
-- Installs the `clip` OSC 52 clipboard script to `~/.local/bin/clip`
-- Prints rollback commands at the end in case you want to undo
+The installer will take 2–5 minutes on first run. It handles everything automatically:
 
-After running the script, log out and back in (or `source ~/.bashrc`),
-then complete the plugin install:
+- Installs all Neovim plugins via headless :Lazy sync
+- Installs treesitter parsers for R, Python, Bash and others
+- Reinstalls nvimcom from patched source to prevent excessive background processes on compute nodes
+- Prunes the R.nvim completion cache to base packages only
+- Configures ~/.bashrc, ~/.bash_profile, and ~/.Rprofile
+
+If needed the system can be uninstalled with the provided uninstall script
+```bash
+bash reset_nvim_r_tmux.sh
+```
 
 ```bash
 # 1. Open nvim — lazy.nvim will auto-install all plugins on first launch
