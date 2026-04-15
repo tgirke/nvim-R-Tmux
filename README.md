@@ -103,19 +103,6 @@ If needed the system can be uninstalled with the provided uninstall script
 bash reset_nvim_r_tmux.sh
 ```
 
-```bash
-# 1. Open nvim — lazy.nvim will auto-install all plugins on first launch
-#    (requires internet access; on HPC run this on the login node)
-nvim
-
-# 2. Wait for plugin install to complete, then run inside nvim:
-#    :Lazy sync
-#    :qa
-
-# 3. Reopen nvim — everything should now be working
-nvim myscript.R
-```
-
 Then follow the [Usage](#usage) section below.
 
 > **On HPC clusters:** modules must be loaded in the same shell session
