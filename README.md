@@ -1,21 +1,6 @@
 # nvim-R-Tmux: Terminal-based IDE for R, Python and Bash
 
 
-A terminal-based development environment for R, Python and Bash built on
-[Neovim](https://neovim.io), [R.nvim](https://github.com/R-nvim/R.nvim),
-[hlterm](https://github.com/jalvesaq/hlterm) and
-[Tmux](https://github.com/tmux/tmux). Designed for working efficiently on
-HPC clusters over SSH, and equally useful on personal Linux, macOS and
-Windows (MobaXterm/WSL) systems.
-
-> **Note:** This is a major update of the original
-> [Nvim-R-Tmux](https://github.com/tgirke/nvim-R-Tmux/tree/legacy) setup.
-> The old instructions are preserved on the
-> [`legacy`](https://github.com/tgirke/nvim-R-Tmux/tree/legacy) branch.
-> Key changes: `Nvim-R` → `R.nvim`, `vimcmdline` → `hlterm`,
-> `vim-plug` → `lazy.nvim`, `init.vim` → `init.lua`.
-
----
 
 ## Table of Contents
 
@@ -51,6 +36,24 @@ Windows (MobaXterm/WSL) systems.
 ---
 
 ## Overview
+
+### Background
+
+A terminal-based development environment for R, Python and Bash built on
+[Neovim](https://neovim.io), [R.nvim](https://github.com/R-nvim/R.nvim),
+[hlterm](https://github.com/jalvesaq/hlterm) and
+[Tmux](https://github.com/tmux/tmux). Designed for working efficiently on
+HPC clusters over SSH, and equally useful on personal Linux, macOS and
+Windows (MobaXterm/WSL) systems.
+
+> **Note:** This is a major update of the original
+> [Nvim-R-Tmux](https://github.com/tgirke/nvim-R-Tmux/tree/legacy) setup.
+> The old instructions are preserved on the
+> [`legacy`](https://github.com/tgirke/nvim-R-Tmux/tree/legacy) branch.
+> Key changes: `Nvim-R` → `R.nvim`, `vimcmdline` → `hlterm`,
+> `vim-plug` → `lazy.nvim`, `init.vim` → `init.lua`.
+
+### Requirements
 
 | Component | Purpose | Replaces |
 |---|---|---|
