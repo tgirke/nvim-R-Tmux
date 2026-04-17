@@ -5,10 +5,11 @@
 #
 # Installs and configures:
 #   - Neovim config (init.lua) with lazy.nvim, R.nvim, hlterm,
-#     nvim-treesitter, neo-tree, indent-blankline, kanagawa
+#     nvim-treesitter, neo-tree, indent-blankline, kanagawa, luasnip
 #   - Tmux config (.tmux.conf)
 #   - OSC 52 clip script for clipboard over SSH
 #   - Patched bol.R to cap bo_code.R workers at 1 on HPC nodes
+#   - Code snippets for R, Quarto and Rmd (~/.config/nvim/snippets/)
 #   - Shell convenience aliases in .bashrc
 #   - All plugins installed via headless :Lazy sync (no manual nvim needed)
 #   - Treesitter parsers installed synchronously (no error on first open)
@@ -33,9 +34,6 @@
 # =============================================================================
 set -euo pipefail
 # On HPC clusters, initialize the module system if needed and load tools.
-# We source the bash-specific init directly to avoid shell detection issues
-# in non-interactive subshells. The 2>/dev/null suppresses known bugs in
-# some module system versions (e.g. uasked variable error).
 set +e
 if [ -f /usr/share/Modules/init/bash ] && ! command -v module &>/dev/null; then
   source /usr/share/Modules/init/bash 2>/dev/null
@@ -104,17 +102,19 @@ cp "$(dirname "$0")/init.lua" "$HOME/.config/nvim/init.lua"
 echo "  Done."
 echo ""
 # ---------- patched bol.R ----------------------------------------------------
-# nvimcom's bol.R has two HPC-specific problems fixed by our patched version:
-#   1. installed.packages() indexes all system packages (hundreds on HPC),
-#      causing 20+ bo_code.R workers. Patched to filter to base packages only.
-#   2. parallel::detectCores() - 2 scales workers with SLURM --cpus-per-task.
-#      Patched to hardcode num_cores <- 1L.
-#
-# Installed to ~/.config/nvim/bol.R as the canonical source for:
-#   - The nvimcom reinstall step below (bakes patch into compiled bytecode)
-#   - The build hook in init.lua (redeploys after :Lazy update)
 echo "--- Installing patched bol.R (~/.config/nvim/bol.R) ---"
 cp "$(dirname "$0")/bol.R" "$HOME/.config/nvim/bol.R"
+echo "  Done."
+echo ""
+# ---------- code snippets ----------------------------------------------------
+# Snippets for R, Quarto and Rmd expand common code skeletons directly in
+# the editor. Stored in ~/.config/nvim/snippets/ and loaded by LuaSnip.
+# rmd.lua is a copy of quarto.lua — same snippets work for both filetypes.
+echo "--- Installing code snippets (~/.config/nvim/snippets/) ---"
+mkdir -p "$HOME/.config/nvim/snippets"
+cp "$(dirname "$0")/snippets/r.lua"      "$HOME/.config/nvim/snippets/r.lua"
+cp "$(dirname "$0")/snippets/quarto.lua" "$HOME/.config/nvim/snippets/quarto.lua"
+cp "$(dirname "$0")/snippets/quarto.lua" "$HOME/.config/nvim/snippets/rmd.lua"
 echo "  Done."
 echo ""
 # ---------- hlterm bash fix --------------------------------------------------
@@ -210,9 +210,8 @@ fi
 echo ""
 # ---------- lazy sync (headless) ---------------------------------------------
 # Runs :Lazy sync without opening nvim, installing all plugins and triggering
-# the build hook in init.lua which:
-#   - Deploys the patched bol.R into the R.nvim plugin directory
-#   - Marks bol.R as assume-unchanged so future :Lazy updates are not blocked
+# the build hook in init.lua which deploys the patched bol.R and marks it
+# as assume-unchanged so future :Lazy updates are not blocked.
 # Requires internet access. Takes 1-3 minutes on first run.
 echo "--- Installing Neovim plugins (headless :Lazy sync) ---"
 echo "  This may take 1-3 minutes on first run..."
@@ -222,11 +221,7 @@ echo ""
 # ---------- treesitter parsers -----------------------------------------------
 # Install treesitter parsers synchronously so they are ready before nvim is
 # opened for the first time. Without this, opening an R file immediately after
-# install triggers a one-time error:
-#   "Parser could not be created for buffer 1 and language r"
-# because :TSUpdate (triggered by lazy.nvim) runs asynchronously and may not
-# have finished before nvim exits the headless sync above.
-# TSInstallSync blocks until all parsers are fully installed.
+# install triggers a one-time error about a missing R parser.
 echo "--- Installing treesitter parsers (synchronous) ---"
 nvim --headless \
   "+TSInstallSync! r rnoweb markdown markdown_inline yaml bash python lua" \
@@ -238,25 +233,14 @@ echo ""
 # user's ~/R/ library. Patching the source bol.R in the lazy plugin directory
 # has no effect on the compiled package — library('nvimcom') always loads
 # the bytecode from ~/R/, ignoring the source tree entirely.
-#
 # The fix is to reinstall nvimcom from our patched source so the compiled
-# bytecode contains the patched nvim.build.cmplls() function. This step:
-#   1. Copies our patched bol.R into the nvimcom source tree in the lazy dir
-#   2. Installs nvimcom from that source into the user's R library
-#   3. Verifies the install succeeded
-#
-# This must run AFTER the headless lazy sync so the nvimcom source tree
-# exists at ~/.local/share/nvim/lazy/R.nvim/nvimcom/.
+# bytecode contains the patched nvim.build.cmplls() function.
 echo "--- Reinstalling nvimcom from patched source ---"
 NVIMCOM_SRC="$HOME/.local/share/nvim/lazy/R.nvim/nvimcom"
 NVIMCOM_BOL="$NVIMCOM_SRC/R/bol.R"
 if [ -d "$NVIMCOM_SRC" ]; then
-  # Deploy patched bol.R into the source tree
   cp "$HOME/.config/nvim/bol.R" "$NVIMCOM_BOL"
   echo "  Patched bol.R deployed to nvimcom source tree."
-  # Install nvimcom from patched source into user R library.
-  # --vanilla ensures ~/.Rprofile does not interfere with the install.
-  # repos=NULL with a local path compiles from source without internet.
   Rscript --vanilla -e "
     lib <- Sys.getenv('R_LIBS_USER', unset = path.expand('~/R'))
     lib <- strsplit(lib, .Platform\$path.sep)[[1]][1]
@@ -271,11 +255,10 @@ if [ -d "$NVIMCOM_SRC" ]; then
       INSTALL_opts = '--no-multiarch'
     )
   " 2>&1
-  # Verify the patched function is in the installed package
   RESULT=$(Rscript --vanilla -e "
     library('nvimcom', quietly = TRUE)
     fn <- deparse(body(nvimcom:::nvim.build.cmplls))
-    if (any(grepl('base_pkgs', fn))) {
+    if (any(grepl('loaded_libs', fn))) {
       cat('OK: patched nvim.build.cmplls detected\n')
     } else {
       cat('WARNING: patch not detected in installed nvimcom\n')
@@ -290,9 +273,9 @@ fi
 echo ""
 # ---------- R.nvim cache cleanup ---------------------------------------------
 # Remove cached completion entries for all non-base R packages.
-# The patched nvimcom limits indexing to base packages only, but any cache
-# entries built before this install would still trigger rebuild attempts.
-# Pruning to base packages ensures a clean starting state.
+# The patched nvimcom limits indexing to currently loaded packages only,
+# but any cache entries built before this install would still trigger
+# rebuild attempts. Pruning ensures a clean starting state.
 echo "--- Pruning R.nvim completion cache to base packages ---"
 CACHE_DIR="$HOME/.cache/R.nvim"
 if [ -d "$CACHE_DIR" ]; then

@@ -15,6 +15,7 @@
   - [Tmux key bindings](#tmux-key-bindings)
   - [Neovim key bindings](#neovim-key-bindings)
   - [File browser (neo-tree)](#file-browser-neo-tree)
+  - [Code snippets](#code-snippets)
   - [Clipboard](#clipboard)
 - [Step-wise install](#step-wise-install)
   - [1. Install Neovim](#1-install-neovim--010-required)
@@ -386,6 +387,55 @@ Hidden files (dotfiles) are not shown by default. Press `H` to toggle
 them on or off.
 
 ---
+### Code snippets
+
+Code snippets expand common R, Quarto and Rmd skeletons directly in the
+editor. Type a trigger word, press `Ctrl-Space` to open the completion menu,
+select the snippet entry (labeled `~ Snippet`), and press `Enter` to expand.
+After expanding, press `Tab` to jump forward through placeholders and
+`Shift-Tab` to jump back.
+
+**R file snippets** (`.R` files):
+
+| Trigger | Expands to |
+|---|---|
+| `for` | `for` loop with variable, iterable and body placeholders |
+| `fun` | function definition with name, arguments and body |
+| `if` | `if/else` block |
+| `ife` | `if / else if / else` block |
+| `whl` | `while` loop |
+| `aply` | `sapply` with anonymous function |
+| `laply` | `lapply` with anonymous function |
+| `tc` | `tryCatch` with error handler |
+| `pipe` | base R pipe chain (`\|>`) |
+
+**Quarto and R Markdown snippets** (`.qmd` and `.Rmd` files):
+
+| Trigger | Expands to |
+|---|---|
+| `rch` | basic R code chunk (` ```{r label} `) |
+| `rcho` | R chunk with `eval`, `echo` and `warning` options |
+| `rchf` | R chunk with figure caption, width and height options |
+| `pch` | Python code chunk |
+| `bch` | Bash code chunk |
+| `call` | Quarto callout block (note / warning / tip / important) |
+| `tabs` | Quarto tabset with two tabs |
+
+> **Note on `if/else` in Quarto/Rmd chunks:** Use `\cc` to send a complete
+> `if/else` block from a Quarto or Rmd chunk rather than line-by-line with
+> `Enter`. Line-by-line sending works for simple expressions but not for
+> multi-statement control flow in markdown-based documents due to how
+> R.nvim's TreeSitter-based chunk parser identifies statement boundaries.
+> In plain `.R` scripts, line-by-line `Enter` works correctly for all
+> control flow structures.
+
+**Adding or modifying snippets:**
+
+Snippet files live in `~/.config/nvim/snippets/` and are plain Lua files
+named after the filetype (`r.lua`, `quarto.lua`, `rmd.lua`). Edit them
+directly to add new snippets or change existing ones. Changes take effect
+immediately without restarting Neovim — LuaSnip reloads snippet files
+automatically when they change on disk.
 
 ### Clipboard
 
