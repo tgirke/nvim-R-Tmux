@@ -227,12 +227,11 @@ require("lazy").setup({
   --   The build hook below:
   --     1. Copies the patched bol.R from ~/.config/nvim/bol.R (installed
   --        by the installer) into the plugin directory. The patch replaces
-  --        parallel::detectCores() - 2 with 1L, capping workers at 1.
+  --        parallel::detectCores() - 2 with 1L, capping workers at 1, and
+  --        filters installed.packages() to currently loaded libs only.
   --     2. Runs git update-index --assume-unchanged on bol.R so that
   --        lazy.nvim's git status check never sees it as a local
   --        modification blocking future :Lazy sync / :Lazy update calls.
-  --        Unlike .git/info/exclude (which only works for untracked files),
-  --        --assume-unchanged works correctly for tracked files.
   --   This runs automatically on every :Lazy sync / :Lazy update.
   -- ---------------------------------------------------------
   {
@@ -244,8 +243,7 @@ require("lazy").setup({
       local bol_dst    = plugin_dir .. "/nvimcom/R/bol.R"
       local bol_src    = vim.fn.expand("~/.config/nvim/bol.R")
 
-      -- Deploy the patched bol.R that caps mclapply workers at 1L,
-      -- preventing 20+ bo_code.R processes on SLURM compute nodes.
+      -- Deploy the patched bol.R
       if vim.fn.filereadable(bol_src) == 1 then
         vim.fn.system("cp " .. bol_src .. " " .. bol_dst)
         if vim.v.shell_error ~= 0 then
@@ -263,11 +261,8 @@ require("lazy").setup({
         return
       end
 
-      -- Mark bol.R as assume-unchanged in git so lazy.nvim's git status
-      -- check never sees our patched version as a local modification.
-      -- Note: .git/info/exclude does NOT work here because bol.R is a
-      -- tracked file — assume-unchanged is the correct mechanism for
-      -- telling git to ignore changes to tracked files.
+      -- Mark bol.R as assume-unchanged so lazy.nvim git status never
+      -- sees our patched version as a local modification blocking updates.
       vim.fn.system(
         "git -C " .. plugin_dir ..
         " update-index --assume-unchanged nvimcom/R/bol.R"
@@ -293,21 +288,11 @@ require("lazy").setup({
 
         -- Limit completion database to base R packages only.
         -- This prevents R.nvim from spawning multiple bo_code.R background
-        -- processes to index all installed packages at startup — which is
-        -- the main cause of excessive R processes visible in htop on shared
-        -- HPC login nodes and compute nodes. Users still get completions for
-        -- any package after loading it in R with library(). To index all
-        -- installed packages instead (not recommended on HPC), comment out
-        -- this line.
+        -- processes to index all installed packages at startup. Users still
+        -- get completions for any package after loading it with library().
         start_libs = "base,stats,graphics,grDevices,utils,datasets,methods",
 
         -- Data frame viewer (\rv) — uses VisiData if installed
-        -- VisiData (vd) is a terminal-based viewer with paging, sorting,
-        -- filtering and search. Works over SSH, handles large data frames.
-        -- Install: pip install --user visidata
-        -- The "terminal:" prefix opens vd in a proper nvim terminal split.
-        -- If vd is not installed, falls back to nvim buffer display.
-        -- n_lines=0 means all rows (default -1 limits to ~1200 rows).
         view_df = {
           n_lines  = 0,
           csv_sep  = "\t",
@@ -321,7 +306,6 @@ require("lazy").setup({
         hook = {
           on_filetype = function()
             -- Enter sends line (normal) or selection (visual) to R
-            -- Using Enter rather than Space avoids leader key conflict
             vim.api.nvim_buf_set_keymap(0, "n", "<Enter>",
               "<Plug>RDSendLine", {})
             vim.api.nvim_buf_set_keymap(0, "v", "<Enter>",
@@ -335,29 +319,13 @@ require("lazy").setup({
   -- ---------------------------------------------------------
   -- hlterm
   -- Send code to Python, Bash/Shell interpreters and more.
-  -- The modern replacement for vimcmdline, by the same author
-  -- (Jakson Alves de Aquino) as R.nvim.
   --
   -- Repository: https://github.com/jalvesaq/hlterm
-  --
-  -- Supported languages include: Python, Bash, Shell, Julia,
-  -- JavaScript, Kotlin, Lua, Matlab, Ruby, Scala, and more.
-  --
-  -- Usage (in a .py or .sh file):
-  --   \s      start the interpreter in a split pane
-  --   Enter   send current line to interpreter  (set below)
-  --   Enter   send selection to interpreter     (set below)
-  --
-  -- Note: uses the same Enter keybinding as R.nvim but they
-  -- are buffer-local so they don't conflict — R files use
-  -- R.nvim's Enter, Python/Bash files use hlterm's Enter.
   -- ---------------------------------------------------------
   {
     "jalvesaq/hlterm",
     lazy = false,
     config = function()
-      -- Remap send-line from default \l to Enter
-      -- to match R.nvim's keybinding for consistency
       vim.g.hlterm_map_send_line      = "<Enter>"
       vim.g.hlterm_map_send_selection = "<Enter>"
     end,
@@ -365,28 +333,22 @@ require("lazy").setup({
 
   -- ---------------------------------------------------------
   -- neo-tree.nvim
-  -- File browser. Replacement for unmaintained NERDTree.
-  -- Toggle: zz
+  -- File browser. Toggle: zz
   --
-  -- Repository:    https://github.com/nvim-neo-tree/neo-tree.nvim
-  -- Documentation: https://github.com/nvim-neo-tree/neo-tree.nvim/blob/v3.x/doc/neo-tree.txt
+  -- Repository: https://github.com/nvim-neo-tree/neo-tree.nvim
   -- ---------------------------------------------------------
   {
     "nvim-neo-tree/neo-tree.nvim",
     branch       = "v3.x",
     dependencies = {
-      "nvim-lua/plenary.nvim",       -- https://github.com/nvim-lua/plenary.nvim
-      "nvim-tree/nvim-web-devicons", -- optional icons (needs Nerd Font)
-      "MunifTanjim/nui.nvim",        -- https://github.com/MunifTanjim/nui.nvim
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons",
+      "MunifTanjim/nui.nvim",
     },
     keys = {
       { "zz", "<cmd>Neotree toggle<cr>", desc = "Toggle file browser" },
     },
     opts = {
-      -- ASCII icons work in any terminal without Nerd Fonts installed.
-      -- Students connecting via SSH/MobaXterm won't see broken boxes.
-      -- To use Nerd Font icons instead, remove this default_component_configs
-      -- block and install a Nerd Font: https://www.nerdfonts.com
       default_component_configs = {
         icon = {
           folder_closed = "+",
@@ -398,8 +360,8 @@ require("lazy").setup({
       },
       filesystem = {
         filtered_items = {
-          visible       = false,
-          hide_dotfiles = true,
+          visible         = false,
+          hide_dotfiles   = true,
           hide_gitignored = true,
         },
       },
@@ -407,44 +369,114 @@ require("lazy").setup({
   },
 
   -- ---------------------------------------------------------
-  -- nvim-cmp + cmp-nvim-lsp
-  -- Auto-completion as you type in R files.
-  -- Uses R.nvim's built-in LSP server for completions.
-  -- cmp-r is no longer needed (archived Dec 2025).
+  -- LuaSnip
+  -- Snippet engine. Expands code skeletons for R, Quarto, Rmd.
+  -- Snippets are defined in ~/.config/nvim/snippets/
+  --
+  -- Usage:
+  --   Ctrl-Space     trigger completion (snippets appear alongside completions)
+  --   Enter          confirm/expand selected snippet
+  --   Tab            jump to next placeholder inside expanded snippet
+  --   Shift-Tab      jump to previous placeholder
+  --
+  -- Available snippet triggers:
+  --   R files:       for, fun, if, ife, whl, aply, laply, tc, pipe
+  --   Quarto/Rmd:    rch, rcho, rchf, pch, bch, call, tabs
+  --
+  -- Repository: https://github.com/L3MON4D3/LuaSnip
+  -- ---------------------------------------------------------
+  {
+    "L3MON4D3/LuaSnip",
+    lazy = false,
+    config = function()
+      local ls = require("luasnip")
+
+      -- Load snippets from ~/.config/nvim/snippets/
+      -- Files are named after filetypes: r.lua, quarto.lua, rmd.lua
+      require("luasnip.loaders.from_lua").load({
+        paths = { vim.fn.expand("~/.config/nvim/snippets/") }
+      })
+
+      -- Tab: jump to next placeholder when inside a snippet
+      vim.keymap.set({ "i", "s" }, "<Tab>", function()
+        if ls.jumpable(1) then
+          ls.jump(1)
+        else
+          vim.api.nvim_feedkeys(
+            vim.api.nvim_replace_termcodes("<Tab>", true, false, true),
+            "n", false
+          )
+        end
+      end, { desc = "LuaSnip: jump to next placeholder" })
+
+      -- Shift-Tab: jump to previous placeholder
+      vim.keymap.set({ "i", "s" }, "<S-Tab>", function()
+        if ls.jumpable(-1) then ls.jump(-1) end
+      end, { desc = "LuaSnip: jump to previous placeholder" })
+    end,
+  },
+
+  -- ---------------------------------------------------------
+  -- nvim-cmp + cmp-nvim-lsp + cmp_luasnip
+  -- Auto-completion: LSP completions, buffer words, snippets.
   -- Ctrl-Space: manual trigger
-  -- Tab / Shift-Tab: navigate completion list
-  -- Enter: confirm selection
-  -- Ctrl-e: dismiss completion popup
+  -- Tab / Shift-Tab: navigate completion list or jump placeholders
+  -- Enter: confirm selection or expand snippet
+  -- Ctrl-e: dismiss popup
   --
   -- Repository: https://github.com/hrsh7th/nvim-cmp
-  -- Repository: https://github.com/hrsh7th/cmp-nvim-lsp
   -- ---------------------------------------------------------
   {
     "hrsh7th/nvim-cmp",
     lazy = false,
     dependencies = {
-      { "hrsh7th/cmp-nvim-lsp", lazy = false },
-      { "hrsh7th/cmp-buffer",   lazy = false },
+      { "hrsh7th/cmp-nvim-lsp",      lazy = false },
+      { "hrsh7th/cmp-buffer",        lazy = false },
+      { "saadparwaiz1/cmp_luasnip",  lazy = false },
     },
     config = function()
       local cmp     = require("cmp")
       local cmp_lsp = require("cmp_nvim_lsp")
+      local luasnip = require("luasnip")
 
       -- Tell R.nvim's built-in LSP about nvim-cmp's extra capabilities
       local capabilities = cmp_lsp.default_capabilities()
       vim.lsp.config("*", { capabilities = capabilities })
 
       cmp.setup({
+        snippet = {
+          -- Required: tell nvim-cmp which engine to use for expansion
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
+        },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
           ["<CR>"]      = cmp.mapping.confirm({ select = false }),
-          ["<Tab>"]     = cmp.mapping.select_next_item(),
-          ["<S-Tab>"]   = cmp.mapping.select_prev_item(),
+          ["<Tab>"]     = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif luasnip.jumpable(1) then
+              luasnip.jump(1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+          ["<S-Tab>"]   = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
           ["<C-e>"]     = cmp.mapping.abort(),
         }),
         sources = cmp.config.sources({
-          { name = "nvim_lsp" },  -- R.nvim built-in LSP completions
-          { name = "buffer" },    -- words from current buffer
+          { name = "nvim_lsp" },  -- R.nvim LSP completions
+          { name = "luasnip"  },  -- snippet completions
+          { name = "buffer"   },  -- words from current buffer
         }),
       })
     end,
@@ -453,7 +485,7 @@ require("lazy").setup({
   -- ---------------------------------------------------------
   -- indent-blankline.nvim
   -- Vertical indentation guide lines.
-  -- Toggle: Space-i  (or :IBLToggle)
+  -- Toggle: Space-i
   --
   -- Repository: https://github.com/lukas-reineke/indent-blankline.nvim
   -- ---------------------------------------------------------
@@ -468,9 +500,7 @@ require("lazy").setup({
 
   -- ---------------------------------------------------------
   -- render-markdown.nvim
-  -- Renders markdown inside Neovim — no browser needed.
-  -- Works over SSH on HPC and in any terminal.
-  -- Toggle rendered view with Space-rm.
+  -- Renders markdown inside Neovim. Toggle: Space-rm
   --
   -- Repository: https://github.com/MeanderingProgrammer/render-markdown.nvim
   -- ---------------------------------------------------------
@@ -490,8 +520,7 @@ require("lazy").setup({
 
   -- ---------------------------------------------------------
   -- kanagawa.nvim
-  -- Color scheme. Works in 256-color SSH sessions and
-  -- true-color local terminals.
+  -- Color scheme.
   -- Variants: "kanagawa-wave" | "kanagawa-dragon" | "kanagawa-lotus"
   --
   -- Repository: https://github.com/rebelot/kanagawa.nvim
@@ -506,19 +535,14 @@ require("lazy").setup({
   },
 
 }, {
-  -- lazy.nvim settings
-  -- Reference: https://github.com/folke/lazy.nvim#%EF%B8%8F-configuration
   install = { colorscheme = { "habamax" } },
-  checker = { enabled = false },    -- no auto-update (recommended on HPC)
-  rocks   = { enabled = false },    -- disable luarocks (not needed, avoids warnings)
+  checker = { enabled = false },
+  rocks   = { enabled = false },
 })
 
 
 -- ===========================================================
 -- SECTION 5: Key mappings
--- General keymaps not specific to any plugin.
--- Plugin keymaps are co-located with their plugin blocks above.
--- Reference: https://neovim.io/doc/user/map.html
 -- ===========================================================
 
 -- Jump between splits with Ctrl-hjkl
@@ -531,8 +555,6 @@ vim.keymap.set("n", "<C-k>", "<C-w>k", { desc = "Move to upper split" })
 vim.keymap.set("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 -- Toggle mouse on/off (Space-m)
--- Use to switch between Neovim mouse support and terminal text selection.
--- On ChromeOS mouse starts off; on other systems it starts on.
 vim.keymap.set("n", "<leader>m", function()
   if vim.opt.mouse:get() == "" or next(vim.opt.mouse:get()) == nil then
     vim.opt.mouse = "a"
@@ -544,17 +566,10 @@ vim.keymap.set("n", "<leader>m", function()
 end, { desc = "Toggle mouse" })
 
 -- Fold toggles (Space-z / Space-Z)
--- Useful for collapsing Quarto/Rmd chunk argument blocks (#| lines)
--- and R function bodies to get a high-level overview of a script.
--- Uses treesitter foldexpr set in Section 2 above.
---   Space-z   close all folds
---   Space-Z   open all folds
---   za        toggle fold under cursor
 vim.keymap.set("n", "<leader>z", "zM", { desc = "Close all folds" })
 vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
 
 -- Toggle auto-completion on/off (Space-c)
--- Useful when the popup is distracting; Ctrl-Space still works when off
 vim.keymap.set("n", "<leader>c", function()
   local cmp = require("cmp")
   if cmp.get_config().completion.autocomplete then
@@ -568,10 +583,7 @@ vim.keymap.set("n", "<leader>c", function()
   end
 end, { desc = "Toggle auto-completion" })
 
--- Auto-set tabstop=20 when viewing R data frames with \rv
--- Aligns column titles with column content in the viewer buffer.
--- Also disables line wrapping so wide tables stay readable.
--- To adjust column width change tabstop value (e.g. :set tabstop=15)
+-- Auto-set tabstop=20 for R data frame viewer
 vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
   pattern = { "*.csv", "*.tsv" },
   callback = function()
@@ -582,19 +594,6 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 })
 
 -- Kill orphaned bo_code.R processes on nvim exit.
---
--- rnvimserver (the R.nvim background daemon) does not reliably terminate
--- its bo_code.R child processes when a nvim session closes, leaving orphaned
--- R processes running on the node. This affects both login nodes (2-4
--- processes per session) and compute nodes (10-30 processes per session),
--- and is a known upstream issue with R.nvim/rnvimserver cleanup.
---
--- This autocmd sends SIGTERM to any bo_code.R processes owned by this user
--- when nvim exits. It is safe to use with multiple concurrent nvim sessions:
--- any bo_code.R process still alive at nvim exit is by definition orphaned
--- (rnvimserver exits before nvim does), so killing all of them for this user
--- is the correct behavior. On SLURM compute nodes the job scheduler will
--- also reap processes on job end, but this ensures immediate cleanup.
 vim.api.nvim_create_autocmd("VimLeave", {
   callback = function()
     vim.fn.system("pkill -u " .. vim.fn.expand("$USER") .. " -f bo_code.R")
@@ -623,18 +622,21 @@ vim.api.nvim_create_autocmd("VimLeave", {
 --   \ch                    send all chunks above cursor
 --   \rh                    R help for word under cursor
 --   \ro                    toggle object browser
---   \rv                    view data frame in VisiData (paging, sorting, search)
---                          install: pip install --user visidata
---                          quit VisiData: q
---   Ctrl-Space             trigger completion manually (insert mode)
---   Tab / Shift-Tab        navigate completion list
---   Enter                  confirm completion selection
+--   \rv                    view data frame in VisiData
+--   Ctrl-Space             trigger completion (insert mode)
+--   Tab / Shift-Tab        navigate completion list or jump snippet placeholders
+--   Enter                  confirm completion or expand snippet
 --   Ctrl-e                 dismiss completion popup
 --   Space-c                toggle auto-completion on/off
 --   Alt + -                insert <-
 --   Alt + ,                insert |>
 --   :RMapsDesc             full R.nvim keybinding list
 --   :RConfigShow           current R.nvim config
+--
+-- Snippets (type trigger then Ctrl-Space, select, Enter):
+--   R:      for, fun, if, ife, whl, aply, laply, tc, pipe
+--   Quarto: rch, rcho, rchf, pch, bch, call, tabs
+--   After expanding: Tab / Shift-Tab to jump between placeholders
 --
 -- Python files (.py) and Bash files (.sh):
 --   \s                     start interpreter (Python or Bash)
@@ -653,7 +655,6 @@ vim.api.nvim_create_autocmd("VimLeave", {
 --
 -- Indent guides:
 --   Space-i                toggle vertical indent guide lines on/off
---                          (useful before copying to avoid pasting guide chars)
 --
 -- Splits:
 --   :vsplit                vertical split
@@ -667,10 +668,8 @@ vim.api.nvim_create_autocmd("VimLeave", {
 --
 -- Mouse:
 --   Space-m                toggle mouse on/off
---   (ChromeOS: starts OFF — use terminal text selection)
---   (Others:   starts ON  — Shift+drag for terminal selection)
 --
--- Folding (chunk args, function bodies):
+-- Folding:
 --   Space-z                close all folds
 --   Space-Z                open all folds
 --   za                     toggle fold under cursor
@@ -679,7 +678,6 @@ vim.api.nvim_create_autocmd("VimLeave", {
 -- Clipboard:
 --   yy                     yank line to system clipboard
 --   p                      paste from system clipboard
---   (ChromeOS: use Ctrl-Shift-C/V in terminal instead)
 --
 -- Plugins:
 --   :Lazy                  plugin manager UI
