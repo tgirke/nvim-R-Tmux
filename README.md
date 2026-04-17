@@ -421,13 +421,6 @@ After expanding, press `Tab` to jump forward through placeholders and
 | `call` | Quarto callout block (note / warning / tip / important) |
 | `tabs` | Quarto tabset with two tabs |
 
-> **Note on `if/else` in Quarto/Rmd chunks:** Use `\cc` to send a complete
-> `if/else` block from a Quarto or Rmd chunk rather than line-by-line with
-> `Enter`. Line-by-line sending works for simple expressions but not for
-> multi-statement control flow in markdown-based documents due to how
-> R.nvim's TreeSitter-based chunk parser identifies statement boundaries.
-> In plain `.R` scripts, line-by-line `Enter` works correctly for all
-> control flow structures.
 
 **Adding or modifying snippets:**
 
