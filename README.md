@@ -16,7 +16,7 @@
   - [Neovim key bindings](#neovim-key-bindings)
   - [File browser (neo-tree)](#file-browser-neo-tree)
   - [Code snippets](#code-snippets)
-  - [Claude Code Integration](claude-code)
+  - [Claude Code Integration](claude-code-integration)
   - [Clipboard](#clipboard)
 - [Step-wise install](#step-wise-install)
   - [1. Install Neovim](#1-install-neovim--010-required)
