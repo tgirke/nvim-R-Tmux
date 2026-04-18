@@ -16,6 +16,7 @@
   - [Neovim key bindings](#neovim-key-bindings)
   - [File browser (neo-tree)](#file-browser-neo-tree)
   - [Code snippets](#code-snippets)
+  - [Claude Code Integration](claude-code)
   - [Clipboard](#clipboard)
 - [Step-wise install](#step-wise-install)
   - [1. Install Neovim](#1-install-neovim--010-required)
@@ -429,6 +430,10 @@ named after the filetype (`r.lua`, `quarto.lua`, `rmd.lua`). Edit them
 directly to add new snippets or change existing ones. Changes take effect
 immediately without restarting Neovim — LuaSnip reloads snippet files
 automatically when they change on disk.
+
+### Claude Code Integration
+Claude Code (AI Coding Assistant) can be used alongside this setup for AI-assisted development.
+See [CLAUDE_CODE.md](CLAUDE_CODE.md) for setup and workflow instructions.
 
 ### Clipboard
 
