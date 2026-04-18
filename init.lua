@@ -32,6 +32,13 @@
 --   kanagawa.nvim color scheme (rebelot)
 --   https://github.com/rebelot/kanagawa.nvim
 --
+--   vim-fugitive (Tim Pope)
+--   https://github.com/tpope/vim-fugitive
+--
+--   claude-code.nvim (Greg Hughes)
+--   https://github.com/greggh/claude-code.nvim
+--
+--
 -- Last tested: Neovim 0.11, R.nvim 0.99, hlterm, nvim-treesitter master
 --
 -- Maintainability notes:
@@ -531,6 +538,52 @@ require("lazy").setup({
     priority = 1000,
     config = function()
       vim.cmd("colorscheme kanagawa-wave")
+    end,
+  },
+
+-- ---------------------------------------------------------
+  -- vim-fugitive
+  -- Git integration. Review Claude Code changes with vimdiff.
+  --
+  -- Key commands:
+  --   :Git status           interactive status window (- to stage/unstage)
+  --   :Git commit           commit message buffer (ZZ to save and close)
+  --   :Gvdiffsplit HEAD~1   side-by-side diff vs previous commit
+  --   ]c / [c               jump to next / previous change in diff view
+  --   do                    diff obtain — revert hunk to old version
+  --   dp                    diff put — push hunk to other side
+  --   :diffoff              exit diff mode
+  --
+  -- Repository: https://github.com/tpope/vim-fugitive
+  -- ---------------------------------------------------------
+  {
+    "tpope/vim-fugitive",
+    lazy = false,
+  },
+
+  -- ---------------------------------------------------------
+  -- claude-code.nvim
+  -- Claude Code AI assistant terminal inside Neovim.
+  -- Requires Claude Code CLI and a Claude Pro account.
+  --
+  -- Usage:
+  --   :ClaudeCode           open Claude Code terminal split
+  --   Ctrl-\ Ctrl-n         exit terminal insert mode
+  --
+  -- Typical workflow:
+  --   1. cd into git repo, make a baseline commit
+  --   2. :ClaudeCode → give instruction in plain English
+  --   3. Claude edits files directly
+  --   4. :Gvdiffsplit HEAD~1 to review changes with fugitive
+  --   5. git add -A && :Git commit to accept
+  --
+  -- Repository: https://github.com/greggh/claude-code.nvim
+  -- ---------------------------------------------------------
+  {
+    "greggh/claude-code.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("claude-code").setup()
     end,
   },
 
