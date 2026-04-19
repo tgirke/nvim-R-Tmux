@@ -6,21 +6,9 @@
 ## What is Claude Code?
 
 Claude Code is Anthropic's AI coding assistant that runs in your terminal. Unlike
-browser-based AI tools, it has direct read/write access to your project files — it
-can open files, edit them, run shell commands, check git status, and iterate on
-errors without you relaying anything back and forth.
-
-The interaction is plain English conversation, not code syntax. You describe what
-you want, Claude acts on it, you review the result.
-
-**Claude Code vs claude.ai (browser):**
-
-| Task | Better in |
-|------|-----------|
-| Edit files, fix errors, refactor code | Claude Code (terminal) |
-| Run analysis pipelines end to end | Claude Code (terminal) |
-| Conceptual discussions, curriculum design | claude.ai (browser) |
-| Interactive visualizations and widgets | claude.ai (browser) |
+Claude's browser-based AI service, it has direct read/write access to your project files — it
+can open files, edit them, run shell commands, check git status, and resolving
+errors. The integration with git is extremely useful to maintain control over file changes.
 
 ---
 
