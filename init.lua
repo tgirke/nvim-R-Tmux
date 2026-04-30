@@ -32,6 +32,13 @@
 --   kanagawa.nvim color scheme (rebelot)
 --   https://github.com/rebelot/kanagawa.nvim
 --
+--   vim-fugitive (Tim Pope)
+--   https://github.com/tpope/vim-fugitive
+--
+--   claude-code.nvim (Greg Hughes)
+--   https://github.com/greggh/claude-code.nvim
+--
+--
 -- Last tested: Neovim 0.11, R.nvim 0.99, hlterm, nvim-treesitter master
 --
 -- Maintainability notes:
@@ -84,24 +91,6 @@ vim.opt.splitbelow     = true   -- split opens below
 vim.opt.scrolloff      = 5      -- keep 5 context lines
 vim.opt.termguicolors  = true   -- 24-bit color
 
--- Disable dimming of eval=FALSE chunks in Rmd/Quarto files.
--- R.nvim sets RCodeComment to use Comment fg color (grey/dimmed) for
--- eval=FALSE chunks. Override it to match RCodeBlock (normal chunks)
--- so all chunks have identical syntax highlighting regardless of eval setting.
-vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
-  pattern = { "r", "rmd", "quarto" },
-  callback = function()
-    local hl = vim.api.nvim_get_hl(0, { name = "RCodeBlock", create = false })
-    if hl and (hl.bg or hl.fg) then
-      vim.api.nvim_set_hl(0, "RCodeComment", hl)
-    else
-      -- RCodeBlock not set yet — link to Normal as fallback
-      vim.api.nvim_set_hl(0, "RCodeComment", { link = "Normal" })
-    end
-  end,
-  desc = "Match eval=FALSE chunk highlight to active chunk style",
-})
-
 -- Cursor shape and color
 -- Insert mode: bright yellow vertical bar, easy to spot on dark backgrounds.
 -- Change the bg color to taste — options: #00e5ff (cyan), #ff9500 (orange)
@@ -120,9 +109,11 @@ vim.api.nvim_set_hl(0, "WinSeparator", { fg = "#5c6a7a", bold = false })
 -- Uses treesitter to fold along code structure (function bodies,
 -- chunk argument blocks in Rmd/Quarto, etc.)
 -- foldlevel=99 means all folds start open — close manually as needed
--- Reference: https://github.com/nvim-treesitter/nvim-treesitter#folding
+-- Reference: https://neovim.io/doc/user/fold.html
+-- Note: v:lua.vim.treesitter.foldexpr() is the correct Lua API form
+-- (replaces the deprecated nvim_treesitter#foldexpr() Vimscript call)
 vim.opt.foldmethod = "expr"
-vim.opt.foldexpr   = "nvim_treesitter#foldexpr()"
+vim.opt.foldexpr   = "v:lua.vim.treesitter.foldexpr()"
 vim.opt.foldlevel  = 99
 
 -- ----------------------------------------------------------
@@ -233,24 +224,82 @@ require("lazy").setup({
   --   Alt-,   insert |>
   --   :RMapsDesc    full keybinding list
   --   :RConfigShow  current config values
+  --
+  -- HPC bo_code.R worker fix:
+  --   nvimcom's bol.R hardcodes parallel::detectCores() - 2 as the worker
+  --   count for its completion database builder, ignoring all R options and
+  --   environment variables. On SLURM nodes with --cpus-per-task > 2 this
+  --   causes 20+ bo_code.R processes per session.
+  --
+  --   The build hook below:
+  --     1. Copies the patched bol.R from ~/.config/nvim/bol.R (installed
+  --        by the installer) into the plugin directory. The patch replaces
+  --        parallel::detectCores() - 2 with 1L, capping workers at 1, and
+  --        filters installed.packages() to currently loaded libs only.
+  --     2. Runs git update-index --assume-unchanged on bol.R so that
+  --        lazy.nvim's git status check never sees it as a local
+  --        modification blocking future :Lazy sync / :Lazy update calls.
+  --   This runs automatically on every :Lazy sync / :Lazy update.
   -- ---------------------------------------------------------
   {
     "R-nvim/R.nvim",
     lazy         = false,
     dependencies = { "nvim-treesitter/nvim-treesitter" },
+    build = function()
+      local plugin_dir = vim.fn.stdpath("data") .. "/lazy/R.nvim"
+      local bol_dst    = plugin_dir .. "/nvimcom/R/bol.R"
+      local bol_src    = vim.fn.expand("~/.config/nvim/bol.R")
+
+      -- Deploy the patched bol.R
+      if vim.fn.filereadable(bol_src) == 1 then
+        vim.fn.system("cp " .. bol_src .. " " .. bol_dst)
+        if vim.v.shell_error ~= 0 then
+          vim.notify(
+            "R.nvim: WARNING — failed to deploy patched bol.R",
+            vim.log.levels.WARN
+          )
+          return
+        end
+      else
+        vim.notify(
+          "R.nvim: WARNING — ~/.config/nvim/bol.R not found, skipping patch",
+          vim.log.levels.WARN
+        )
+        return
+      end
+
+      -- Mark bol.R as assume-unchanged so lazy.nvim git status never
+      -- sees our patched version as a local modification blocking updates.
+      vim.fn.system(
+        "git -C " .. plugin_dir ..
+        " update-index --assume-unchanged nvimcom/R/bol.R"
+      )
+      if vim.v.shell_error == 0 then
+        vim.notify(
+          "R.nvim: deployed patched bol.R (bo_code.R workers capped at 1)",
+          vim.log.levels.INFO
+        )
+      else
+        vim.notify(
+          "R.nvim: WARNING — failed to mark bol.R as assume-unchanged",
+          vim.log.levels.WARN
+        )
+      end
+    end,
     config = function()
       require("r").setup({
         R_args           = { "--quiet", "--no-save" },
         min_editor_width = 72,
         rconsole_width   = 78,
         auto_quit        = true,
+
+        -- Limit completion database to base R packages only.
+        -- This prevents R.nvim from spawning multiple bo_code.R background
+        -- processes to index all installed packages at startup. Users still
+        -- get completions for any package after loading it with library().
+        start_libs = "base,stats,graphics,grDevices,utils,datasets,methods",
+
         -- Data frame viewer (\rv) — uses VisiData if installed
-        -- VisiData (vd) is a terminal-based viewer with paging, sorting,
-        -- filtering and search. Works over SSH, handles large data frames.
-        -- Install: pip install --user visidata
-        -- The "terminal:" prefix opens vd in a proper nvim terminal split.
-        -- If vd is not installed, falls back to nvim buffer display.
-        -- n_lines=0 means all rows (default -1 limits to ~1200 rows).
         view_df = {
           n_lines  = 0,
           csv_sep  = "\t",
@@ -260,20 +309,14 @@ require("lazy").setup({
           save_fun = "",
         },
 
-        -- HPC completion database: built automatically by rnvimserver on \rf
-        -- and cached in ~/.cache/R.vim/. If startup hangs on the login node,
-        -- the most likely cause is insufficient CPU/RAM limits (minimum: 1 CPU,
-        -- 1GB RAM). Ask your sysadmin to increase limits if needed.
-        -- Fallback: add options(nvimcom.pkg.desc = FALSE) to ~/.Rprofile.
         objbr_auto_start    = false,
-        -- Disable chunk background highlighting — prevents eval=FALSE chunks
-        -- from being dimmed/greyed out, restoring full syntax highlighting
+        -- Disable chunk background highlighting to prevent eval=FALSE chunks
+        -- from being dimmed/greyed out — restores full syntax highlighting
+        -- in all code chunks regardless of eval setting.
         register_treesitter = false,
-        -- start_libs = "base,stats,graphics,grDevices,utils,datasets,methods",
         hook = {
           on_filetype = function()
             -- Enter sends line (normal) or selection (visual) to R
-            -- Using Enter rather than Space avoids leader key conflict
             vim.api.nvim_buf_set_keymap(0, "n", "<Enter>",
               "<Plug>RDSendLine", {})
             vim.api.nvim_buf_set_keymap(0, "v", "<Enter>",
@@ -287,29 +330,13 @@ require("lazy").setup({
   -- ---------------------------------------------------------
   -- hlterm
   -- Send code to Python, Bash/Shell interpreters and more.
-  -- The modern replacement for vimcmdline, by the same author
-  -- (Jakson Alves de Aquino) as R.nvim.
   --
   -- Repository: https://github.com/jalvesaq/hlterm
-  --
-  -- Supported languages include: Python, Bash, Shell, Julia,
-  -- JavaScript, Kotlin, Lua, Matlab, Ruby, Scala, and more.
-  --
-  -- Usage (in a .py or .sh file):
-  --   \s      start the interpreter in a split pane
-  --   Enter   send current line to interpreter  (set below)
-  --   Enter   send selection to interpreter     (set below)
-  --
-  -- Note: uses the same Enter keybinding as R.nvim but they
-  -- are buffer-local so they don't conflict — R files use
-  -- R.nvim's Enter, Python/Bash files use hlterm's Enter.
   -- ---------------------------------------------------------
   {
     "jalvesaq/hlterm",
     lazy = false,
     config = function()
-      -- Remap send-line from default \l to Enter
-      -- to match R.nvim's keybinding for consistency
       vim.g.hlterm_map_send_line      = "<Enter>"
       vim.g.hlterm_map_send_selection = "<Enter>"
     end,
@@ -317,28 +344,22 @@ require("lazy").setup({
 
   -- ---------------------------------------------------------
   -- neo-tree.nvim
-  -- File browser. Replacement for unmaintained NERDTree.
-  -- Toggle: zz
+  -- File browser. Toggle: zz
   --
-  -- Repository:    https://github.com/nvim-neo-tree/neo-tree.nvim
-  -- Documentation: https://github.com/nvim-neo-tree/neo-tree.nvim/blob/v3.x/doc/neo-tree.txt
+  -- Repository: https://github.com/nvim-neo-tree/neo-tree.nvim
   -- ---------------------------------------------------------
   {
     "nvim-neo-tree/neo-tree.nvim",
     branch       = "v3.x",
     dependencies = {
-      "nvim-lua/plenary.nvim",       -- https://github.com/nvim-lua/plenary.nvim
-      "nvim-tree/nvim-web-devicons", -- optional icons (needs Nerd Font)
-      "MunifTanjim/nui.nvim",        -- https://github.com/MunifTanjim/nui.nvim
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons",
+      "MunifTanjim/nui.nvim",
     },
     keys = {
       { "zz", "<cmd>Neotree toggle<cr>", desc = "Toggle file browser" },
     },
     opts = {
-      -- ASCII icons work in any terminal without Nerd Fonts installed.
-      -- Students connecting via SSH/MobaXterm won't see broken boxes.
-      -- To use Nerd Font icons instead, remove this default_component_configs
-      -- block and install a Nerd Font: https://www.nerdfonts.com
       default_component_configs = {
         icon = {
           folder_closed = "+",
@@ -350,8 +371,8 @@ require("lazy").setup({
       },
       filesystem = {
         filtered_items = {
-          visible       = false,
-          hide_dotfiles = true,
+          visible         = false,
+          hide_dotfiles   = true,
           hide_gitignored = true,
         },
       },
@@ -359,50 +380,123 @@ require("lazy").setup({
   },
 
   -- ---------------------------------------------------------
-  -- nvim-cmp + cmp-nvim-lsp
-  -- Auto-completion as you type in R files.
-  -- Uses R.nvim's built-in LSP server for completions.
-  -- cmp-r is no longer needed (archived Dec 2025).
+  -- LuaSnip
+  -- Snippet engine. Expands code skeletons for R, Quarto, Rmd.
+  -- Snippets are defined in ~/.config/nvim/snippets/
+  --
+  -- Usage:
+  --   Ctrl-Space     trigger completion (snippets appear alongside completions)
+  --   Enter          confirm/expand selected snippet
+  --   Tab            jump to next placeholder inside expanded snippet
+  --   Shift-Tab      jump to previous placeholder
+  --
+  -- Available snippet triggers:
+  --   R files:       for, fun, if, ife, whl, aply, laply, tc, pipe
+  --   Quarto/Rmd:    rch, rcho, rchf, pch, bch, call, tabs
+  --
+  -- Repository: https://github.com/L3MON4D3/LuaSnip
+  -- ---------------------------------------------------------
+  {
+    "L3MON4D3/LuaSnip",
+    lazy = false,
+    config = function()
+      local ls = require("luasnip")
+
+      -- Load snippets from ~/.config/nvim/snippets/
+      -- Files are named after filetypes: r.lua, quarto.lua, rmd.lua
+      require("luasnip.loaders.from_lua").load({
+        paths = { vim.fn.expand("~/.config/nvim/snippets/") }
+      })
+
+      -- Tab: jump to next placeholder when inside a snippet
+      vim.keymap.set({ "i", "s" }, "<Tab>", function()
+        if ls.jumpable(1) then
+          ls.jump(1)
+        else
+          vim.api.nvim_feedkeys(
+            vim.api.nvim_replace_termcodes("<Tab>", true, false, true),
+            "n", false
+          )
+        end
+      end, { desc = "LuaSnip: jump to next placeholder" })
+
+      -- Shift-Tab: jump to previous placeholder
+      vim.keymap.set({ "i", "s" }, "<S-Tab>", function()
+        if ls.jumpable(-1) then ls.jump(-1) end
+      end, { desc = "LuaSnip: jump to previous placeholder" })
+    end,
+  },
+
+  -- ---------------------------------------------------------
+  -- nvim-cmp + cmp-nvim-lsp + cmp_luasnip
+  -- Auto-completion: LSP completions, buffer words, snippets.
   -- Ctrl-Space: manual trigger
-  -- Tab / Shift-Tab: navigate completion list
-  -- Enter: confirm selection
-  -- Ctrl-e: dismiss completion popup
+  -- Tab / Shift-Tab: navigate completion list or jump placeholders
+  -- Enter: confirm selection or expand snippet
+  -- Ctrl-e: dismiss popup
   --
   -- Repository: https://github.com/hrsh7th/nvim-cmp
-  -- Repository: https://github.com/hrsh7th/cmp-nvim-lsp
   -- ---------------------------------------------------------
   {
     "hrsh7th/nvim-cmp",
     lazy = false,
     dependencies = {
-      { "hrsh7th/cmp-nvim-lsp", lazy = false },
-      { "hrsh7th/cmp-buffer",   lazy = false },
+      { "hrsh7th/cmp-nvim-lsp",      lazy = false },
+      { "hrsh7th/cmp-buffer",        lazy = false },
+      { "saadparwaiz1/cmp_luasnip",  lazy = false },
     },
     config = function()
       local cmp     = require("cmp")
       local cmp_lsp = require("cmp_nvim_lsp")
+      local luasnip = require("luasnip")
 
       -- Tell R.nvim's built-in LSP about nvim-cmp's extra capabilities
       local capabilities = cmp_lsp.default_capabilities()
       vim.lsp.config("*", { capabilities = capabilities })
 
       cmp.setup({
+        snippet = {
+          -- Required: tell nvim-cmp which engine to use for expansion
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
+        },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
           ["<CR>"]      = cmp.mapping.confirm({ select = false }),
-          ["<Tab>"]     = cmp.mapping.select_next_item(),
-          ["<S-Tab>"]   = cmp.mapping.select_prev_item(),
+          ["<Tab>"]     = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif luasnip.jumpable(1) then
+              luasnip.jump(1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+          ["<S-Tab>"]   = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
           ["<C-e>"]     = cmp.mapping.abort(),
         }),
         sources = cmp.config.sources({
-          { name = "nvim_lsp" },  -- R.nvim built-in LSP completions
-          { name = "buffer" },    -- words from current buffer
+          { name = "nvim_lsp" },  -- R.nvim LSP completions
+          { name = "luasnip"  },  -- snippet completions
+          { name = "buffer"   },  -- words from current buffer
         }),
       })
     end,
   },
+
+  -- ---------------------------------------------------------
+  -- indent-blankline.nvim
   -- Vertical indentation guide lines.
-  -- Toggle: Space-i  (or :IBLToggle)
+  -- Toggle: Space-i
   --
   -- Repository: https://github.com/lukas-reineke/indent-blankline.nvim
   -- ---------------------------------------------------------
@@ -417,9 +511,7 @@ require("lazy").setup({
 
   -- ---------------------------------------------------------
   -- render-markdown.nvim
-  -- Renders markdown inside Neovim — no browser needed.
-  -- Works over SSH on HPC and in any terminal.
-  -- Toggle rendered view with Space-rm.
+  -- Renders markdown inside Neovim. Toggle: Space-rm
   --
   -- Repository: https://github.com/MeanderingProgrammer/render-markdown.nvim
   -- ---------------------------------------------------------
@@ -439,8 +531,7 @@ require("lazy").setup({
 
   -- ---------------------------------------------------------
   -- kanagawa.nvim
-  -- Color scheme. Works in 256-color SSH sessions and
-  -- true-color local terminals.
+  -- Color scheme.
   -- Variants: "kanagawa-wave" | "kanagawa-dragon" | "kanagawa-lotus"
   --
   -- Repository: https://github.com/rebelot/kanagawa.nvim
@@ -454,20 +545,61 @@ require("lazy").setup({
     end,
   },
 
+-- ---------------------------------------------------------
+  -- vim-fugitive
+  -- Git integration. Review Claude Code changes with vimdiff.
+  --
+  -- Key commands:
+  --   :Git status           interactive status window (- to stage/unstage)
+  --   :Git commit           commit message buffer (ZZ to save and close)
+  --   :Gvdiffsplit HEAD~1   side-by-side diff vs previous commit
+  --   ]c / [c               jump to next / previous change in diff view
+  --   do                    diff obtain — revert hunk to old version
+  --   dp                    diff put — push hunk to other side
+  --   :diffoff              exit diff mode
+  --
+  -- Repository: https://github.com/tpope/vim-fugitive
+  -- ---------------------------------------------------------
+  {
+    "tpope/vim-fugitive",
+    lazy = false,
+  },
+
+  -- ---------------------------------------------------------
+  -- claude-code.nvim
+  -- Claude Code AI assistant terminal inside Neovim.
+  -- Requires Claude Code CLI and a Claude Pro account.
+  --
+  -- Usage:
+  --   :ClaudeCode           open Claude Code terminal split
+  --   Ctrl-\ Ctrl-n         exit terminal insert mode
+  --
+  -- Typical workflow:
+  --   1. cd into git repo, make a baseline commit
+  --   2. :ClaudeCode → give instruction in plain English
+  --   3. Claude edits files directly
+  --   4. :Gvdiffsplit HEAD~1 to review changes with fugitive
+  --   5. git add -A && :Git commit to accept
+  --
+  -- Repository: https://github.com/greggh/claude-code.nvim
+  -- ---------------------------------------------------------
+  {
+    "greggh/claude-code.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("claude-code").setup()
+    end,
+  },
+
 }, {
-  -- lazy.nvim settings
-  -- Reference: https://github.com/folke/lazy.nvim#%EF%B8%8F-configuration
   install = { colorscheme = { "habamax" } },
-  checker = { enabled = false },    -- no auto-update (recommended on HPC)
-  rocks   = { enabled = false },    -- disable luarocks (not needed, avoids warnings)
+  checker = { enabled = false },
+  rocks   = { enabled = false },
 })
 
 
 -- ===========================================================
 -- SECTION 5: Key mappings
--- General keymaps not specific to any plugin.
--- Plugin keymaps are co-located with their plugin blocks above.
--- Reference: https://neovim.io/doc/user/map.html
 -- ===========================================================
 
 -- Jump between splits with Ctrl-hjkl
@@ -480,8 +612,6 @@ vim.keymap.set("n", "<C-k>", "<C-w>k", { desc = "Move to upper split" })
 vim.keymap.set("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 -- Toggle mouse on/off (Space-m)
--- Use to switch between Neovim mouse support and terminal text selection.
--- On ChromeOS mouse starts off; on other systems it starts on.
 vim.keymap.set("n", "<leader>m", function()
   if vim.opt.mouse:get() == "" or next(vim.opt.mouse:get()) == nil then
     vim.opt.mouse = "a"
@@ -493,17 +623,10 @@ vim.keymap.set("n", "<leader>m", function()
 end, { desc = "Toggle mouse" })
 
 -- Fold toggles (Space-z / Space-Z)
--- Useful for collapsing Quarto/Rmd chunk argument blocks (#| lines)
--- and R function bodies to get a high-level overview of a script.
--- Uses treesitter foldexpr set in Section 2 above.
---   Space-z   close all folds
---   Space-Z   open all folds
---   za        toggle fold under cursor
 vim.keymap.set("n", "<leader>z", "zM", { desc = "Close all folds" })
 vim.keymap.set("n", "<leader>Z", "zR", { desc = "Open all folds" })
 
 -- Toggle auto-completion on/off (Space-c)
--- Useful when the popup is distracting; Ctrl-Space still works when off
 vim.keymap.set("n", "<leader>c", function()
   local cmp = require("cmp")
   if cmp.get_config().completion.autocomplete then
@@ -517,10 +640,7 @@ vim.keymap.set("n", "<leader>c", function()
   end
 end, { desc = "Toggle auto-completion" })
 
--- Auto-set tabstop=20 when viewing R data frames with \rv
--- Aligns column titles with column content in the viewer buffer.
--- Also disables line wrapping so wide tables stay readable.
--- To adjust column width change tabstop value (e.g. :set tabstop=15)
+-- Auto-set tabstop=20 for R data frame viewer
 vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
   pattern = { "*.csv", "*.tsv" },
   callback = function()
@@ -528,6 +648,14 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
     vim.opt_local.wrap    = false
   end,
   desc = "Align columns in R data frame viewer",
+})
+
+-- Kill orphaned bo_code.R processes on nvim exit.
+vim.api.nvim_create_autocmd("VimLeave", {
+  callback = function()
+    vim.fn.system("pkill -u " .. vim.fn.expand("$USER") .. " -f bo_code.R")
+  end,
+  desc = "Kill orphaned bo_code.R processes on nvim exit",
 })
 
 
@@ -551,18 +679,21 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --   \ch                    send all chunks above cursor
 --   \rh                    R help for word under cursor
 --   \ro                    toggle object browser
---   \rv                    view data frame in VisiData (paging, sorting, search)
---                          install: pip install --user visidata
---                          quit VisiData: q
---   Ctrl-Space             trigger completion manually (insert mode)
---   Tab / Shift-Tab        navigate completion list
---   Enter                  confirm completion selection
+--   \rv                    view data frame in VisiData
+--   Ctrl-Space             trigger completion (insert mode)
+--   Tab / Shift-Tab        navigate completion list or jump snippet placeholders
+--   Enter                  confirm completion or expand snippet
 --   Ctrl-e                 dismiss completion popup
 --   Space-c                toggle auto-completion on/off
 --   Alt + -                insert <-
 --   Alt + ,                insert |>
 --   :RMapsDesc             full R.nvim keybinding list
 --   :RConfigShow           current R.nvim config
+--
+-- Snippets (type trigger then Ctrl-Space, select, Enter):
+--   R:      for, fun, if, ife, whl, aply, laply, tc, pipe
+--   Quarto: rch, rcho, rchf, pch, bch, call, tabs
+--   After expanding: Tab / Shift-Tab to jump between placeholders
 --
 -- Python files (.py) and Bash files (.sh):
 --   \s                     start interpreter (Python or Bash)
@@ -581,7 +712,6 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --
 -- Indent guides:
 --   Space-i                toggle vertical indent guide lines on/off
---                          (useful before copying to avoid pasting guide chars)
 --
 -- Splits:
 --   :vsplit                vertical split
@@ -595,10 +725,8 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 --
 -- Mouse:
 --   Space-m                toggle mouse on/off
---   (ChromeOS: starts OFF — use terminal text selection)
---   (Others:   starts ON  — Shift+drag for terminal selection)
 --
--- Folding (chunk args, function bodies):
+-- Folding:
 --   Space-z                close all folds
 --   Space-Z                open all folds
 --   za                     toggle fold under cursor
@@ -607,7 +735,6 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufEnter" }, {
 -- Clipboard:
 --   yy                     yank line to system clipboard
 --   p                      paste from system clipboard
---   (ChromeOS: use Ctrl-Shift-C/V in terminal instead)
 --
 -- Plugins:
 --   :Lazy                  plugin manager UI
