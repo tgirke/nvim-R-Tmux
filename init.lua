@@ -310,10 +310,6 @@ require("lazy").setup({
         },
 
         objbr_auto_start    = false,
-        -- Disable chunk background highlighting to prevent eval=FALSE chunks
-        -- from being dimmed/greyed out — restores full syntax highlighting
-        -- in all code chunks regardless of eval setting.
-        register_treesitter = false,
         hook = {
           on_filetype = function()
             -- Enter sends line (normal) or selection (visual) to R
