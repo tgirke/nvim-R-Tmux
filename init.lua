@@ -292,6 +292,17 @@ require("lazy").setup({
         min_editor_width = 72,
         rconsole_width   = 78,
         auto_quit        = true,
+        -- Fix for R.nvim regression (commit 5b9c870) where sending lines
+        -- from quarto/rmd chunks sends each line individually causing errors.
+        -- bracketed_paste wraps multiline sends correctly.
+        -- See: https://github.com/R-nvim/R.nvim/issues/549
+        bracketed_paste  = true,
+
+        -- Optional: use radian as R console for syntax highlighting and
+        -- dropdown completion in the R pane. Radian is a modern R console
+        -- built on Python. Install: pip install --user radian
+        -- Uncomment the line below to enable:
+        -- R_app = "radian",
 
         -- Limit completion database to base R packages only.
         -- This prevents R.nvim from spawning multiple bo_code.R background
