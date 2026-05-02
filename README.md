@@ -224,7 +224,7 @@ are now connected — code sent from the editor runs in the R pane.
 | Send selection | `Enter` (visual mode — select with `v` first) |
 | Send entire file | `\aa` |
 | Send current function | `\ff` |
-| Send current chunk (Rmd/Quarto) | `\cd` |
+| Send current chunk (Rmd/Quarto) | `\cc` |
 | Send all chunks above cursor | `\ch` |
 
 **R.nvim commands:**
@@ -259,6 +259,34 @@ Ctrl-h / Ctrl-l jump left / right
 i               enter insert mode (in R pane)
 Esc             return to normal mode
 ```
+
+> **Optional: radian — enhanced R console**
+>
+> [Radian](https://github.com/randy3k/radian) is a modern R console with
+> syntax highlighting and dropdown auto-completion as you type in the R pane.
+> It is a drop-in replacement for the standard R console.
+>
+> **Install:**
+> ```bash
+> pip install --user radian        # Linux/HPC
+> brew install radian              # macOS
+> ```
+>
+> **Enable in nvim:** uncomment the `R_app` line in `~/.config/nvim/init.lua`:
+> ```lua
+> R_app = "radian",
+> ```
+>
+> **Fix the prompt:** radian defaults to `r$>` instead of `>`. Create
+> `~/.radian_profile` to restore the standard prompt:
+> ```r
+> options(radian.prompt = "> ")
+> options(radian.continuation_prompt = "+ ")
+> ```
+>
+> Restart nvim after making these changes. Radian works identically to the
+> standard R console for all R.nvim features including `\rf`, `Enter` to
+> send code, and `\rv` for data frame viewing.
 
 ---
 
@@ -820,6 +848,8 @@ Please consult these upstream sources when things change:
 | indent-blankline.nvim | Lukas Reineke | https://github.com/lukas-reineke/indent-blankline.nvim |
 | kanagawa.nvim | rebelot | https://github.com/rebelot/kanagawa.nvim |
 | colorout | Jakson Alves de Aquino | https://github.com/jalvesaq/colorout |
+| vim-fugitive | Tim Pope | https://github.com/tpope/vim-fugitive |
+| claude-code.nvim | Greg Hurrell | https://github.com/greggh/claude-code.nvim |
 | Tmux | Nicholas Marriott & contributors | https://github.com/tmux/tmux |
 | Tmux manual | Tmux contributors | https://man.openbsd.org/tmux |
 
