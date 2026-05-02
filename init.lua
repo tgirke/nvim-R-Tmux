@@ -593,6 +593,19 @@ require("lazy").setup({
   rocks   = { enabled = false },
 })
 
+-- Re-apply colorscheme after all plugins have loaded.
+-- R.nvim sets RCodeComment highlight during setup which overwrites
+-- the colorscheme colors, causing eval=FALSE chunks to appear dimmed.
+-- Re-applying the colorscheme here restores correct syntax highlighting
+-- in all code chunks regardless of eval setting.
+vim.api.nvim_create_autocmd("VimEnter", {
+  once     = true,
+  callback = function()
+    vim.cmd("colorscheme kanagawa-wave")
+  end,
+  desc = "Re-apply colorscheme after plugins to fix eval=FALSE chunk highlighting",
+})
+
 
 -- ===========================================================
 -- SECTION 5: Key mappings
