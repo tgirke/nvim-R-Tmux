@@ -9,13 +9,13 @@
 -- and is loaded after hlterm's own ftplugin/sh_hlterm.lua.
 
 local function source_lines(lines)
-    local config = require("hlterm").get_config()
+    local config = require("hlterm.config").get_config()
     local f = config.tmp_dir .. "/lines.sh"
     vim.fn.writefile(lines, f)
     require("hlterm").send_cmd("sh", ". " .. f)
 end
 
-require("hlterm").set_ft_opts("sh", {
+require("hlterm.config").set_ft_opts("sh", {
     nl         = "\n",
     app        = "bash --login",
     quit_cmd   = "exit",
