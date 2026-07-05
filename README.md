@@ -16,6 +16,7 @@
   - [Neovim key bindings](#neovim-key-bindings)
   - [File browser (neo-tree)](#file-browser-neo-tree)
   - [Code snippets](#code-snippets)
+  - [R Version Toggle](#r-version-toggle)
   - [Claude Code Integration](#claude-code-integration)
   - [Clipboard](#clipboard)
 - [Step-wise install](#step-wise-install)
