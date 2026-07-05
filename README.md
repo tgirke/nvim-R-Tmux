@@ -460,6 +460,8 @@ directly to add new snippets or change existing ones. Changes take effect
 immediately without restarting Neovim — LuaSnip reloads snippet files
 automatically when they change on disk.
 
+---
+
 ### R Version Toggle
 
 The `rig` package (see [here](https://github.com/r-lib/rig)) provides the
@@ -468,9 +470,13 @@ switch between them from Nvim-R-Tmux, a version toggle is included in the
 `init.lua` file of this repo. How to install and work with `rig` is explained
 [here](https://girke.bioinformatics.ucr.edu/GEN242/tutorials/rbasics/rbasics_index.html#working-with-multiple-versions-of-r).
 
+---
+
 ### Claude Code Integration
 Claude Code (AI Coding Assistant) can be used alongside this setup for AI-assisted development.
 See [CLAUDE_CODE.md](CLAUDE_CODE.md) for setup and workflow instructions.
+
+---
 
 ### Clipboard
 
