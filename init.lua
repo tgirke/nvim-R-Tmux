@@ -70,9 +70,37 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- ===========================================================
+-- SECTION 2: Load current Rig R version in nvim-R-Tmux
+-- This allows to easily toggle between R versions by  
+-- selecting them with `rig default <4.5.3 or 4.6.0 or default>`
+-- and then opening R from nvim. 
+-- To view which R version are available on a system type: rig list.
+-- ===========================================================
+
+-- Dynamically target the active Rig R version path inside Neovim
+local local_r_marker = '.Rversion'
+local active_r_path = '/usr/local/bin' -- Default fallback path
+
+-- Check if a local Rig configuration file exists in the current folder
+local f = io.open(local_r_marker, "r")
+if f then
+    local assigned_version = f:read("*l") -- Read the string identifier (e.g. "devel", "4.5.3")
+    f:close()
+    
+    if assigned_version then
+        -- Clean up stray whitespaces or return characters
+        assigned_version = assigned_version:gsub("%s+", "")
+        -- Map to the isolated Rig sandbox path location
+        active_r_path = '/opt/R/' .. assigned_version .. '/bin'
+    end
+end
+
+-- Pass the resolved path directly to your r.vim / Nvim-R plugin configuration
+vim.g.R_path = active_r_path
 
 -- ===========================================================
--- SECTION 2: Basic editor options
+-- SECTION 3: Basic editor options
 -- Reference: https://neovim.io/doc/user/options.html
 -- ===========================================================
 
@@ -138,7 +166,7 @@ vim.opt.clipboard = "unnamedplus"  -- sync yy/p with system clipboard
 
 
 -- ===========================================================
--- SECTION 3: Leader keys
+-- SECTION 4: Leader keys
 --
 -- maplocalleader (\) — R.nvim and hlterm R-specific commands:
 --   \rf   start R session
@@ -158,7 +186,7 @@ vim.g.maplocalleader = "\\"  -- Backslash
 
 
 -- ===========================================================
--- SECTION 4: Plugins
+-- SECTION 5: Plugins
 --
 -- Load order matters:
 --   nvim-treesitter must load BEFORE R.nvim
@@ -619,7 +647,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
 
 
 -- ===========================================================
--- SECTION 5: Key mappings
+-- SECTION 6: Key mappings
 -- ===========================================================
 
 -- Jump between splits with Ctrl-hjkl
