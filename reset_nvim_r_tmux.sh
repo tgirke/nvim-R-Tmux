@@ -83,6 +83,24 @@ else
 fi
 echo ""
 
+# ---------- nvimcom ----------------------------------------------------------
+echo "--- Removing patched nvimcom from R library ---"
+Rscript --vanilla -e "
+  if ('nvimcom' %in% rownames(installed.packages())) {
+    remove.packages('nvimcom')
+    cat('  Done.\n')
+  } else {
+    cat('  nvimcom not found in user library, skipping.\n')
+  }
+" 2>/dev/null || echo "  Skipped (R not available)."
+echo ""
+
+# ---------- R.vim cache ------------------------------------------------------
+echo "--- Removing R.nvim completion cache ---"
+rm -rf "$HOME/.cache/R.vim"
+echo "  Done."
+echo ""
+
 # ---------- done -------------------------------------------------------------
 echo "============================================================"
 echo "  Reset complete."
