@@ -307,23 +307,46 @@ either ask Claude to re-read it explicitly or start a fresh session.
 ## Sending Code Context from Neovim to Claude
 
 When working in a specific file or function and you want Claude's input
-without switching away from your code:
+without switching away from your code, reference it by file and line
+range from the Claude pane. Claude Code always has full file access, so
+you never need to copy or paste code into the terminal.
 
-**Send a visual selection directly to the Claude terminal:**
-```
-V                          enter visual line mode
-j j j                      select lines
-:ClaudeCodeSend            send to Claude pane
-```
-
-**Reference file and line range from the Claude pane:**
+**Reference a file and line range from the Claude pane:**
 ```
 "Look at functions.R lines 42-63 and add error handling to the
  cross-validation loop"
 ```
 
-Claude Code always has full file access — you don't need to paste code
-into the Claude pane. Referencing by line number is enough.
+**Finding line numbers in Neovim:**
+```
+:set number                show line numbers in the gutter
+Ctrl-g                     print the current line ("line X of Y")
+```
+
+Referencing by line number is enough — Claude opens the file itself.
+
+### Optional: tighter integration with claudecode.nvim
+
+The workflow above needs no Neovim plugin. If you want Neovim and Claude
+to talk to each other directly, the community plugin
+[`coder/claudecode.nvim`](https://github.com/coder/claudecode.nvim)
+implements Anthropic's IDE protocol — the same one the official VS Code
+and JetBrains extensions use — and adds:
+
+- **Send a visual selection** to Claude with `:ClaudeCodeSend` (no line
+  numbers needed) — select in Neovim and Claude receives the exact file
+  and range as context.
+- **Shared LSP diagnostics** — Claude can read the errors and warnings
+  your language server reports and fix them without you pasting them.
+- **In-editor diff review** — Claude's edits open as native Neovim diffs
+  you accept or reject, as an alternative to the fugitive/git review loop
+  above.
+- **`/ide` connection** — run `/ide` from the Claude pane to attach it to
+  your running Neovim session.
+
+This is a different plugin from `greggh/claude-code.nvim` (a terminal
+launcher that does not implement the protocol); the `:ClaudeCodeSend`
+command comes only from `coder/claudecode.nvim`.
 
 ---
 
