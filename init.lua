@@ -154,7 +154,8 @@ vim.opt.foldlevel  = 99
 --
 -- clipboard=unnamedplus syncs yy/p with the system clipboard.
 -- On MobaXterm (Windows): works via X11 automatically.
--- On macOS/Linux over SSH: use the clip script (OSC 52).
+-- On macOS/Linux over SSH: auto-switches to OSC 52 below (SSH_TTY/
+-- SSH_CONNECTION detected), no clip script needed.
 -- On ChromeOS: use Ctrl-Shift-C/V in terminal.
 --
 -- To toggle mouse: Space-m (defined in Section 5)
@@ -163,6 +164,25 @@ vim.opt.foldlevel  = 99
 
 vim.opt.mouse     = "a"            -- mouse on (toggle with Space-m)
 vim.opt.clipboard = "unnamedplus"  -- sync yy/p with system clipboard
+
+-- Over SSH (e.g. the cluster) there's no local display server, so
+-- xclip/wl-copy have nothing to talk to and yanks silently go nowhere.
+-- Detect an SSH session and switch to Neovim's built-in OSC 52 provider,
+-- which tunnels yanked text through terminal escape sequences back to
+-- the local machine's clipboard instead.
+if os.getenv("SSH_TTY") or os.getenv("SSH_CONNECTION") then
+  vim.g.clipboard = {
+    name = "OSC 52",
+    copy = {
+      ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+      ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+    },
+    paste = {
+      ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+      ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+    },
+  }
+end
 
 
 -- ===========================================================
