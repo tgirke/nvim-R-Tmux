@@ -90,6 +90,28 @@ cp "$(dirname "$0")/clip" "$HOME/.local/bin/clip"
 chmod +x "$HOME/.local/bin/clip"
 echo "  Done."
 echo ""
+# ---------- wl-clipboard (local Wayland desktops only) -----------------------
+# Only relevant for a local (non-SSH) Wayland session. Without wl-copy/wl-paste,
+# Neovim's clipboard provider silently falls back to xclip over the XWayland
+# bridge, which can desync from what the (Wayland-native) terminal actually
+# pastes. Not needed on HPC — the OSC 52 clip path above has no dependency on
+# any of these tools. Not needed on macOS (pbcopy/pbpaste) or X11-only Linux
+# (xclip/xsel talk to the X server directly, no XWayland bridge involved).
+if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -z "${SSH_TTY:-}${SSH_CONNECTION:-}" ] \
+   && ! command -v wl-copy &>/dev/null; then
+  echo "--- Local Wayland session detected without wl-clipboard ---"
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get install -y wl-clipboard
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y wl-clipboard
+  elif command -v pacman &>/dev/null; then
+    sudo pacman -S --noconfirm wl-clipboard
+  else
+    echo "  No supported package manager found — install wl-clipboard manually,"
+    echo "  e.g.: sudo apt install wl-clipboard"
+  fi || echo "  wl-clipboard install failed/skipped — clipboard may be flaky on this Wayland session."
+  echo ""
+fi
 # ---------- tmux config ------------------------------------------------------
 echo "--- Installing tmux config (~/.tmux.conf) ---"
 cp "$(dirname "$0")/.tmux.conf" "$HOME/.tmux.conf"
