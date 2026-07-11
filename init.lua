@@ -153,9 +153,10 @@ vim.opt.foldlevel  = 99
 -- Space-m to turn off, then Ctrl-Shift-C to copy).
 --
 -- clipboard=unnamedplus syncs yy/p with the system clipboard.
--- On MobaXterm (Windows): works via X11 automatically.
--- On macOS/Linux over SSH: auto-switches to OSC 52 below (SSH_TTY/
--- SSH_CONNECTION detected), no clip script needed.
+-- On MobaXterm (Windows): works via X11 automatically (DISPLAY is set
+-- by MobaXterm's built-in X server, so xclip handles it below).
+-- On macOS/Linux over SSH with no X11 forwarding (e.g. HPC clusters):
+-- auto-switches to OSC 52 below, no clip script needed.
 -- On ChromeOS: use Ctrl-Shift-C/V in terminal.
 --
 -- To toggle mouse: Space-m (defined in Section 5)
@@ -165,12 +166,16 @@ vim.opt.foldlevel  = 99
 vim.opt.mouse     = "a"            -- mouse on (toggle with Space-m)
 vim.opt.clipboard = "unnamedplus"  -- sync yy/p with system clipboard
 
--- Over SSH (e.g. the cluster) there's no local display server, so
--- xclip/wl-copy have nothing to talk to and yanks silently go nowhere.
--- Detect an SSH session and switch to Neovim's built-in OSC 52 provider,
--- which tunnels yanked text through terminal escape sequences back to
--- the local machine's clipboard instead.
-if os.getenv("SSH_TTY") or os.getenv("SSH_CONNECTION") then
+-- Over SSH without X11 forwarding (e.g. a headless HPC cluster) there's
+-- no display server, so xclip/wl-copy have nothing to talk to and yanks
+-- silently go nowhere. Detect that case and switch to Neovim's built-in
+-- OSC 52 provider, which tunnels yanked text through terminal escape
+-- sequences back to the local machine's clipboard instead.
+--
+-- Skip this when DISPLAY is set (e.g. MobaXterm's built-in X server via
+-- X11 forwarding) — OSC 52 does NOT work there, but xclip via the
+-- forwarded X11 display already works automatically, so leave it alone.
+if (os.getenv("SSH_TTY") or os.getenv("SSH_CONNECTION")) and not os.getenv("DISPLAY") then
   vim.g.clipboard = {
     name = "OSC 52",
     copy = {
