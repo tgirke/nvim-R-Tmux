@@ -190,6 +190,23 @@ do                      revert this hunk (restores old version)
 - Hunk you want to **revert** → `do` restores the old version
 - Anything not touched with `do` is accepted when you `:w`
 
+**Reviewing before Claude commits (uncommitted changes):**
+
+You don't have to wait for a commit. When Claude has edited a file but
+not yet committed, reload the buffer and diff against HEAD:
+
+```
+:e                      reload buffer (Claude changed the file on disk)
+:Gvdiffsplit            side-by-side diff vs HEAD (uncommitted changes)
+```
+
+The `:e` matters: Neovim shows the buffer as it was when last loaded, so
+without it the diff is computed against a stale view of the file (or you
+get the W11 "file changed on disk" warning). With `autoread` set and tmux
+focus events working the reload can happen automatically, but an explicit
+`:e` is the reliable version. After a commit, `:Gvdiffsplit HEAD~1` shows
+the same changes as before.
+
 **When Claude changed multiple files:**
 
 Claude lists every modified file in the terminal as it works. After the
@@ -273,6 +290,7 @@ git reset --hard HEAD~1       # uncommit and discard changes (destructive)
 ```
 :Git status                   interactive status (- to stage/unstage)
 :Git commit                   commit buffer (ZZ to save and close)
+:Gvdiffsplit                  side-by-side diff vs HEAD (uncommitted changes)
 :Gvdiffsplit HEAD~1           side-by-side diff vs previous commit
 ```
 
